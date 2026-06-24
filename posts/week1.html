@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Week 1 주간회고 · kty2001</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-title">kty2001<span>.</span>log</a>
+      <a href="../index.html" class="nav-back">← 목록으로</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="post-hero">
+      <div class="container">
+        <div class="post-meta">
+          <span class="post-tag">Week 1</span>
+          <span class="post-date-detail">2026년 06월 17일 — 06월 21일</span>
+        </div>
+        <h1>Python 기초 문법 복습</h1>
+      </div>
+    </section>
+
+    <article class="post-content">
+      <div class="container">
+
+        <!-- ── 이번 주 배운 것 ── -->
+        <div class="block">
+          <h2 class="block-title">이번 주 학습 내용</h2>
+          <p>
+            이번 주는 Python 기초 문법 전반을 다뤘다. 변수와 명명 규칙(01), 자료형과 컬렉션(02),
+            제어문(03), 함수(04), 클래스와 OOP(05) 순서로 진행됐다.
+          </p>
+          <p>
+            전반적으로 크게 어렵지 않은 한 주였다.
+            처음 보는 내용보다는 복습에 가까운 느낌이었고, 흐름을 따라가기 편했다.
+          </p>
+          <ul>
+            <li><strong>변수</strong> — 동적 타이핑, 언더스코어 컨벤션(<code>_</code>, <code>__</code>, <code>__name__</code>), 숫자 리터럴 구분자(<code>1_000_000</code>)</li>
+            <li><strong>자료형</strong> — str 메서드 체계, list/set/dict 연산, 암시적 형 변환 불가 원칙</li>
+            <li><strong>제어문</strong> — 삼항 연산자, 리스트 컴프리헨션, Python 3.10+ <code>match-case</code></li>
+            <li><strong>함수</strong> — <code>*args</code> / <code>**kwargs</code>, lambda, <code>map</code> / <code>filter</code>, 값 전달 vs 참조 전달</li>
+            <li><strong>클래스</strong> — 클래스 변수 vs 인스턴스 변수, 접근 제어(<code>__</code> name mangling), 상속과 <code>super()</code></li>
+          </ul>
+        </div>
+
+        <!-- ── KPT 회고 ── -->
+        <div class="block">
+          <h2 class="block-title">KPT 회고</h2>
+          <div class="kpt-grid">
+            <div class="kpt-card">
+              <div class="kpt-card-label">Keep</div>
+              <p>
+                모르는 문법이 나왔을 때 그냥 넘기지 않고 직접 실행해보며 확인하는 방식이 좋았다.
+                이 흐름을 다음 주에도 유지하자.
+              </p>
+            </div>
+            <div class="kpt-card">
+              <div class="kpt-card-label">Problem</div>
+              <p>
+                쉽다는 생각에 손으로 따라치기보다 눈으로만 확인하고 넘어간 부분이 있었다.
+                직접 쳐보지 않으면 나중에 막히는 법이다.
+              </p>
+            </div>
+            <div class="kpt-card">
+              <div class="kpt-card-label">Try</div>
+              <p>
+                예제를 그대로 따라치는 것에서 벗어나, 직접 변형 예제를 만들어보는 방식으로 전환한다.
+                다음 주부터 새로운 내용이 시작되면 이 흐름을 가져간다.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 새롭게 알게 된 것 ── -->
+        <div class="block">
+          <h2 class="block-title">새롭게 발견한 것</h2>
+          <p>
+            <strong>클래스 변수의 공유 함정.</strong>
+            클래스 변수로 선언한 리스트는 모든 인스턴스가 공유한다는 점을 실습에서 직접 확인했다.
+            인스턴스에서 <code>append</code> 등으로 수정하면 클래스 변수 자체가 바뀌어버린다.
+          </p>
+          <div class="code-block"><code># 잘못된 예 — skills가 모든 인스턴스에 공유됨
+class Character:
+    skills = []          # 클래스 변수
+
+    def add_skill(self, skill):
+        self.skills.append(skill)   # 클래스 변수를 직접 수정
+
+my = Character()
+your = Character()
+my.add_skill('곤봉 휘두르기')
+your.add_skill('마법진')
+print(my.skills)   # ['곤봉 휘두르기', '마법진'] — 의도와 다름
+
+# 올바른 예 — __init__에서 인스턴스 변수로 선언
+class Character:
+    def __init__(self):
+        self.skills = []   # 인스턴스마다 독립적으로 생성</code></div>
+          <p>
+            <strong>언더스코어 컨벤션.</strong>
+            <code>_</code>는 무시할 값, 내부 전용 표시.
+            <code>__</code>는 name mangling으로 외부 직접 접근 차단.
+            <code>__name__</code> 형태는 Python이 예약한 매직 어트리뷰트.
+            별도의 키워드 없이 이름 규칙만으로 접근 제어를 표현한다는 게 인상적이었다.
+          </p>
+        </div>
+
+        <!-- ── 트러블슈팅 ── -->
+        <div class="block">
+          <h2 class="block-title">트러블슈팅</h2>
+          <div class="trouble-card">
+            <p class="trouble-card-title">문제 : super().__init__() 호출 시 TypeError 발생</p>
+            <p>
+              다단계 상속에서 <code>super().__init__()</code>을 호출할 때
+              <code>self</code>를 명시적으로 넘겼더니 인자 개수 오류가 발생했다.
+            </p>
+            <div class="code-block"><code># 수정 전 — self를 직접 전달
+class Student(Learner):
+    def __init__(self, name, subject):
+        super().__init__(self, subject)   # TypeError!
+        self.name = name
+
+# TypeError: Learner.__init__() takes 2 positional arguments but 3 were given</code></div>
+            <p>
+              <code>super().__init__()</code>은 이미 바인딩된 메서드를 반환하므로
+              <code>self</code>가 자동으로 전달된다.
+              여기에 다시 <code>self</code>를 넘기면 첫 번째 인자(self)에 <code>self</code>,
+              두 번째 인자(subject)에 <code>subject</code>가 전달돼 인자가 하나 초과된다.
+            </p>
+            <div class="code-block"><code># 수정 후 — self 제거
+class Student(Learner):
+    def __init__(self, name, subject):
+        super().__init__(subject)   # 정상 동작
+        self.name = name</code></div>
+            <p>
+              <code>super().__init__()</code>은 호출 시 <code>self</code>가 자동으로 전달되기 때문에
+              따로 넘길 필요가 없다. 그냥 습관적으로 넣었다가 생긴 실수였다.
+            </p>
+          </div>
+        </div>
+
+        <!-- ── 다음 주 목표 ── -->
+        <div class="block">
+          <h2 class="block-title">다음 주 목표</h2>
+          <ul>
+            <li>모듈, 패키지, 파일 I/O, 예외 처리 등 새로운 내용에 집중하기</li>
+            <li>예제를 그대로 따라치지 않고 변형 예제를 스스로 만들어보기</li>
+            <li>Python 공식 문서를 병행해서 읽는 습관 들이기</li>
+          </ul>
+        </div>
+
+        <!-- ── 마무리 한마디 ── -->
+        <div class="closing-quote">
+          아는 것과 설명할 수 있는 것은 다르다.<br>
+          기초를 다시 밟는 이번 주가 나중에 가장 단단한 발판이 될 것이다.
+        </div>
+
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© 2026 kty2001 · <a href="https://github.com/kty2001" target="_blank">GitHub</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>
