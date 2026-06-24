@@ -29,86 +29,117 @@
     <article class="post-content">
       <div class="container">
 
-        <!-- ── 이번 주 배운 것 ── -->
+        <!-- ── 이번 주 학습 내용 ── -->
         <div class="block">
           <h2 class="block-title">이번 주 학습 내용</h2>
-          <p>
-            이번 주는 Python 기초 문법 전반을 다뤘다. 변수와 명명 규칙(01), 자료형과 컬렉션(02),
-            제어문(03), 함수(04), 클래스와 OOP(05) 순서로 진행됐다.
-          </p>
-          <p>
-            전반적으로 크게 어렵지 않은 한 주였다.
-            처음 보는 내용보다는 복습에 가까운 느낌이었고, 흐름을 따라가기 편했다.
-          </p>
-          <ul>
-            <li><strong>변수</strong> — 동적 타이핑, 언더스코어 컨벤션(<code>_</code>, <code>__</code>, <code>__name__</code>), 숫자 리터럴 구분자(<code>1_000_000</code>)</li>
-            <li><strong>자료형</strong> — str 메서드 체계, list/set/dict 연산, 암시적 형 변환 불가 원칙</li>
-            <li><strong>제어문</strong> — 삼항 연산자, 리스트 컴프리헨션, Python 3.10+ <code>match-case</code></li>
-            <li><strong>함수</strong> — <code>*args</code> / <code>**kwargs</code>, lambda, <code>map</code> / <code>filter</code>, 값 전달 vs 참조 전달</li>
-            <li><strong>클래스</strong> — 클래스 변수 vs 인스턴스 변수, 접근 제어(<code>__</code> name mangling), 상속과 <code>super()</code></li>
-          </ul>
+          <p>변수와 명명 규칙부터 클래스까지, Python 기초 문법 전반을 다뤘다. 전반적으로 흐름을 따라가기 편한 한 주였다.</p>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">01. 변수</h3>
+            <p>Python은 변수 선언 시 타입을 명시하지 않는다. 값을 할당하는 순간 타입이 결정된다.</p>
+            <p>언더스코어 컨벤션이 인상적이었다. 단순히 스타일 규칙이 아니라 Python이 언더스코어의 위치와 개수로 용도를 구분한다.</p>
+            <ul>
+              <li><code>_</code> — 무시할 값 또는 마지막 실행 결과. <code>x, _, z = (1, 2, 3)</code>처럼 필요 없는 값을 버릴 때 사용</li>
+              <li><code>__</code> — name mangling. 클래스 외부에서 직접 접근을 차단하는 private 용도</li>
+              <li><code>__name__</code> — Python이 예약한 매직 어트리뷰트. 키워드처럼 취급</li>
+            </ul>
+            <p>숫자 리터럴에 <code>_</code>로 자릿수를 구분할 수 있다는 것도 처음 알았다. <code>1_000_000</code>은 <code>1000000</code>과 동일하다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">02. 자료형</h3>
+            <p>숫자형, 불리언, 문자열, 컬렉션(list / set / dict)을 다뤘다.</p>
+            <ul>
+              <li><strong>숫자형</strong> — <code>0b</code>(2진수), <code>0o</code>(8진수), <code>0x</code>(16진수) 리터럴 표현. <code>//</code> 정수 나눗셈, <code>**</code> 거듭제곱 연산자</li>
+              <li><strong>문자열</strong> — <code>strip()</code>, <code>split()</code>, <code>replace()</code>, <code>find()</code> 등 메서드 체계. 포매팅은 f-string을 우선 사용. 다른 타입과 <code>+</code> 연산 불가 — 명시적 형 변환 필요</li>
+              <li><strong>list</strong> — 순서 있음, 중복 허용, 수정 가능. 인덱싱과 슬라이싱으로 접근</li>
+              <li><strong>set</strong> — 순서 없음, 중복 제거. <code>union(|)</code>, <code>intersection(&)</code>, <code>difference(-)</code>, <code>symmetric_difference(^)</code> 집합 연산 지원</li>
+              <li><strong>dict</strong> — key-value 쌍. key는 불변 타입만 허용. <code>get()</code>으로 키 없을 때 None 반환, <code>keys()</code> / <code>values()</code> / <code>items()</code>로 순회</li>
+            </ul>
+            <p>Python은 암시적 형 변환이 제한적이다. <code>True + 3 = 4</code>, <code>3 + 5.0 = 8.0</code>은 되지만 <code>3 + "5"</code>는 TypeError다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">03. 제어문</h3>
+            <p><code>if / elif / else</code> 기본 분기와 삼항 연산자를 복습했다.</p>
+            <ul>
+              <li><strong>삼항 연산자</strong> — <code>값1 if 조건 else 값2</code> 형식. 한 줄로 간결하게 표현 가능</li>
+              <li><strong>match-case</strong> — Python 3.10에서 추가된 패턴 매칭. <code>switch</code>문과 유사하지만 패턴 기반으로 동작. <code>case _:</code>가 default 역할</li>
+              <li><strong>for문</strong> — 리스트, 문자열, 딕셔너리(기본적으로 key 순회) 모두 순회 가능. 중첩 리스트도 언패킹해서 순회할 수 있다</li>
+              <li><strong>리스트 컴프리헨션</strong> — <code>[val + 'k' for val in a]</code>처럼 한 줄로 리스트 생성. 가독성과 성능 모두 좋다</li>
+              <li><strong>break / continue</strong> — <code>break</code>는 반복문 완전 종료, <code>continue</code>는 해당 회차 건너뜀</li>
+            </ul>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">04. 함수</h3>
+            <p>함수 정의, 인자 전달 방식, 가변 인자, lambda를 다뤘다.</p>
+            <ul>
+              <li><strong>기본값 매개변수</strong> — <code>def greeting(name, greet="처음 뵙겠습니다")</code>처럼 기본값 설정 가능. 기본값 있는 매개변수는 뒤에 위치해야 한다</li>
+              <li><strong>키워드 인자</strong> — 호출 시 <code>information(color='black', name='monkey')</code>처럼 순서 무관하게 전달 가능. 단, 위치 인자 뒤에만 올 수 있다</li>
+              <li><strong>다중 반환</strong> — <code>return a+b, a-b</code>처럼 여러 값을 반환하면 tuple로 묶인다. 언패킹으로 받을 수 있다</li>
+              <li><code>*args</code> — 위치 인자를 tuple로 수집. <code>**kwargs</code> — 키워드 인자를 dict로 수집</li>
+              <li><strong>lambda</strong> — 이름 없는 익명 함수. <code>map()</code>, <code>filter()</code>, <code>sorted(key=...)</code>에서 자주 활용</li>
+              <li><strong>전달 방식</strong> — 불변 타입(int, str)은 값 복사, 가변 타입(list, dict)은 참조 전달. 함수 안에서 리스트를 수정하면 원본도 바뀐다</li>
+            </ul>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">05. 클래스</h3>
+            <p>클래스의 기본 구조와 OOP 개념인 캡슐화, 상속을 다뤘다.</p>
+            <ul>
+              <li><strong>클래스 변수 vs 인스턴스 변수</strong> — 클래스 변수는 모든 인스턴스가 공유. <code>__init__</code>에서 <code>self.변수</code>로 선언해야 인스턴스마다 독립적으로 생성된다</li>
+              <li><strong>접근 제어</strong> — <code>__변수명</code>으로 선언하면 name mangling이 적용되어 외부에서 직접 접근 불가. getter/setter 메서드를 통해 제어</li>
+              <li><strong>상속</strong> — <code>class Student(Person):</code>으로 부모 클래스를 상속. <code>super()</code>로 부모 메서드 호출</li>
+              <li><strong>다중 상속</strong> — Python은 여러 부모 클래스를 동시에 상속할 수 있다. 같은 이름의 메서드가 있을 경우 MRO(Method Resolution Order) 순서로 결정</li>
+            </ul>
+          </div>
         </div>
 
         <!-- ── KPT 회고 ── -->
         <div class="block">
           <h2 class="block-title">KPT 회고</h2>
-          <div class="kpt-grid">
-            <div class="kpt-card">
-              <div class="kpt-card-label">Keep</div>
-              <p>
-                모르는 문법이 나왔을 때 그냥 넘기지 않고 직접 실행해보며 확인하는 방식이 좋았다.
-                이 흐름을 다음 주에도 유지하자.
-              </p>
-            </div>
-            <div class="kpt-card">
-              <div class="kpt-card-label">Problem</div>
-              <p>
-                쉽다는 생각에 손으로 따라치기보다 눈으로만 확인하고 넘어간 부분이 있었다.
-                직접 쳐보지 않으면 나중에 막히는 법이다.
-              </p>
-            </div>
-            <div class="kpt-card">
-              <div class="kpt-card-label">Try</div>
-              <p>
-                예제를 그대로 따라치는 것에서 벗어나, 직접 변형 예제를 만들어보는 방식으로 전환한다.
-                다음 주부터 새로운 내용이 시작되면 이 흐름을 가져간다.
-              </p>
-            </div>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Keep</h3>
+            <p>모르는 문법이 나왔을 때 그냥 넘기지 않고 직접 실행해보며 확인하는 방식이 좋았다. 특히 set 집합 연산이나 언더스코어 컨벤션처럼 평소에 대충 알고 있던 부분을 코드로 확인하니 확실히 정리됐다.</p>
+            <p>이 흐름을 다음 주에도 유지하자.</p>
+          </div>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Problem</h3>
+            <p>쉽다는 생각에 손으로 따라치기보다 눈으로만 훑고 넘어간 부분이 있었다. 나중에 직접 써보려니 막히는 메서드 이름이나 인자 순서가 있었다.</p>
+            <p>클래스 실습에서 오타로 인한 에러를 찾는 데 생각보다 시간이 걸렸다.</p>
+          </div>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Try</h3>
+            <p>예제를 그대로 따라치는 것에서 벗어나 변형 예제를 직접 만들어보는 방식으로 전환한다. 예를 들어 dict 메서드를 배우면 그 자리에서 간단한 학생 성적부 dict를 만들어보는 식으로.</p>
           </div>
         </div>
 
-        <!-- ── 새롭게 알게 된 것 ── -->
+        <!-- ── 새롭게 발견한 것 ── -->
         <div class="block">
           <h2 class="block-title">새롭게 발견한 것</h2>
-          <p>
-            <strong>클래스 변수의 공유 함정.</strong>
-            클래스 변수로 선언한 리스트는 모든 인스턴스가 공유한다는 점을 실습에서 직접 확인했다.
-            인스턴스에서 <code>append</code> 등으로 수정하면 클래스 변수 자체가 바뀌어버린다.
-          </p>
+          <p><strong>클래스 변수의 공유 함정.</strong> 클래스 변수로 선언한 리스트는 모든 인스턴스가 공유한다. 인스턴스에서 <code>append</code>로 수정하면 클래스 변수 자체가 바뀌어버린다.</p>
           <div class="code-block"><code># 잘못된 예 — skills가 모든 인스턴스에 공유됨
 class Character:
-    skills = []          # 클래스 변수
+    skills = []  # 클래스 변수
 
     def add_skill(self, skill):
-        self.skills.append(skill)   # 클래스 변수를 직접 수정
+        self.skills.append(skill)  # 클래스 변수를 직접 수정
 
 my = Character()
 your = Character()
 my.add_skill('곤봉 휘두르기')
 your.add_skill('마법진')
-print(my.skills)   # ['곤봉 휘두르기', '마법진'] — 의도와 다름
+print(my.skills)  # ['곤봉 휘두르기', '마법진'] — 의도와 다름
 
 # 올바른 예 — __init__에서 인스턴스 변수로 선언
 class Character:
     def __init__(self):
-        self.skills = []   # 인스턴스마다 독립적으로 생성</code></div>
-          <p>
-            <strong>언더스코어 컨벤션.</strong>
-            <code>_</code>는 무시할 값, 내부 전용 표시.
-            <code>__</code>는 name mangling으로 외부 직접 접근 차단.
-            <code>__name__</code> 형태는 Python이 예약한 매직 어트리뷰트.
-            별도의 키워드 없이 이름 규칙만으로 접근 제어를 표현한다는 게 인상적이었다.
-          </p>
+        self.skills = []  # 인스턴스마다 독립적으로 생성</code></div>
+          <p><strong>언더스코어 컨벤션.</strong> 별도의 키워드 없이 이름 규칙만으로 접근 제어와 용도를 표현한다는 점이 Python다웠다. <code>_</code>는 무시할 값, <code>__</code>는 외부 접근 차단, <code>__name__</code>은 Python 예약 어트리뷰트.</p>
         </div>
 
         <!-- ── 트러블슈팅 ── -->
@@ -116,32 +147,21 @@ class Character:
           <h2 class="block-title">트러블슈팅</h2>
           <div class="trouble-card">
             <p class="trouble-card-title">문제 : super().__init__() 호출 시 TypeError 발생</p>
-            <p>
-              다단계 상속에서 <code>super().__init__()</code>을 호출할 때
-              <code>self</code>를 명시적으로 넘겼더니 인자 개수 오류가 발생했다.
-            </p>
+            <p>다단계 상속에서 <code>super().__init__()</code>을 호출할 때 <code>self</code>를 명시적으로 넘겼더니 인자 개수 오류가 발생했다.</p>
             <div class="code-block"><code># 수정 전 — self를 직접 전달
 class Student(Learner):
     def __init__(self, name, subject):
-        super().__init__(self, subject)   # TypeError!
+        super().__init__(self, subject)  # TypeError!
         self.name = name
 
 # TypeError: Learner.__init__() takes 2 positional arguments but 3 were given</code></div>
-            <p>
-              <code>super().__init__()</code>은 이미 바인딩된 메서드를 반환하므로
-              <code>self</code>가 자동으로 전달된다.
-              여기에 다시 <code>self</code>를 넘기면 첫 번째 인자(self)에 <code>self</code>,
-              두 번째 인자(subject)에 <code>subject</code>가 전달돼 인자가 하나 초과된다.
-            </p>
+            <p><code>super().__init__()</code>은 이미 인스턴스에 바인딩된 메서드를 반환하기 때문에 <code>self</code>가 자동으로 전달된다. 여기에 <code>self</code>를 한 번 더 넘기면 인자가 하나 초과된다.</p>
             <div class="code-block"><code># 수정 후 — self 제거
 class Student(Learner):
     def __init__(self, name, subject):
-        super().__init__(subject)   # 정상 동작
+        super().__init__(subject)  # 정상 동작
         self.name = name</code></div>
-            <p>
-              <code>super().__init__()</code>은 호출 시 <code>self</code>가 자동으로 전달되기 때문에
-              따로 넘길 필요가 없다. 그냥 습관적으로 넣었다가 생긴 실수였다.
-            </p>
+            <p>습관적으로 <code>self</code>를 넣었다가 생긴 실수였다. <code>super().메서드()</code>는 이미 self가 바인딩된 상태임을 기억하자.</p>
           </div>
         </div>
 
@@ -149,8 +169,8 @@ class Student(Learner):
         <div class="block">
           <h2 class="block-title">다음 주 목표</h2>
           <ul>
-            <li>모듈, 패키지, 파일 I/O, 예외 처리 등 새로운 내용에 집중하기</li>
-            <li>예제를 그대로 따라치지 않고 변형 예제를 스스로 만들어보기</li>
+            <li>모듈, 패키지, 파일 I/O, 예외 처리 학습</li>
+            <li>예제를 그대로 따라치지 않고 변형 예제를 직접 만들어보기</li>
             <li>Python 공식 문서를 병행해서 읽는 습관 들이기</li>
           </ul>
         </div>

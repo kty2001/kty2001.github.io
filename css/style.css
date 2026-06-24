@@ -314,24 +314,18 @@ body {
   display: block;
 }
 
-/* ── KPT 카드 ── */
-.kpt-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1px;
-  background-color: var(--hairline);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+/* ── KPT 순차 섹션 ── */
+.kpt-section {
+  padding: var(--spacing-lg) 0;
+  border-bottom: 1px solid var(--hairline);
 }
 
-.kpt-card {
-  padding: var(--spacing-lg);
-  background-color: var(--canvas);
+.kpt-section:last-child {
+  border-bottom: none;
 }
 
-.kpt-card-label {
-  font-size: 12px;
+.kpt-section-title {
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -339,12 +333,52 @@ body {
   margin-bottom: var(--spacing-sm);
 }
 
-.kpt-card p {
-  font-size: 15px;
+.kpt-section p {
+  font-size: 17px;
   color: var(--ink);
   line-height: 1.6;
-  letter-spacing: -0.1px;
+  letter-spacing: -0.2px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.kpt-section p:last-child {
   margin-bottom: 0;
+}
+
+/* ── 학습 내용 서브섹션 ── */
+.sub-block {
+  margin-bottom: var(--spacing-xl);
+}
+
+.sub-block-title {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.2px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.sub-block p {
+  font-size: 17px;
+  line-height: 1.6;
+  letter-spacing: -0.2px;
+  color: var(--ink);
+  margin-bottom: var(--spacing-sm);
+}
+
+.sub-block ul {
+  padding-left: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: var(--spacing-sm);
+}
+
+.sub-block li {
+  font-size: 17px;
+  line-height: 1.6;
+  letter-spacing: -0.2px;
+  color: var(--ink);
 }
 
 /* ── 트러블슈팅 카드 ── */
