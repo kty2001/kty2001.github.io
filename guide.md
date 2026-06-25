@@ -1,113 +1,136 @@
-# 플레이데이터 주간회고(WIL) 작성 가이드
+# 주간회고 작성 가이드
 
-국내 기업 테크 블로그 모음집  
+## 목적
 
-<aside>
-📝 **주간회고를 작성해봅시다!**
+지난 일주일을 돌아보고, 더 나은 다음 주를 만들기 위한 기록이다.
+완벽한 글을 쓰는 것이 목표가 아니다. 빠르게 작성하고 꾸준히 쌓는 것이 중요하다.
 
-</aside>
+---
 
-- 개발자는 코드로 말합니다. 더 좋은 코드로 이야기하려면, 좋은 글을 쓰는 연습도 필요하답니다.
-- 글 쓰는 연습에 기록과 회고만큼 좋은 것이 없지요 ✍️
+## 새 주차 포스트 작성 순서
 
-<aside>
-🥅 **주간회고의 목적**
+### 1. 이전 파일 복사
 
-</aside>
+```
+posts/week1.html → posts/week2.html
+```
 
-1. 지난 일주일을 되돌아봄으로써 나의 현재 상태를 파악하고
-2. 더 나은 다음주를 만들기 위해 어떤 부분을 어떻게 채워나갈 지를 고민하는 것
+VS Code에서 복사하거나 터미널에서:
 
-<aside>
-❓ **이런 질문들을 가지고 접근해보세요**
+```bash
+cp posts/week1.html posts/week2.html
+```
 
-</aside>
+### 2. 메타 정보 수정
 
-- 지난 일주일 동안 가장 인상 깊었던 배움에는 뭐가 있었지?
-- 그 배움까지 다가가는데 어떤 어려움이 있었지?
-- 그 과정에서 나는 무엇을 깨달았고, 어떤 감정/생각이 들었었지?
-- 결과적으로, 현재 나의 상태는?
-- 이 상태에서 다음 일주일을 더 잘 보내려면 어떻게 해야 할까?
+`week2.html` 상단 3곳 수정:
 
-<aside>
-💡 **추천하는 템플릿 : 이런 내용은 꼭 담아주세요**
+```html
+<title>Week 2 주간회고 · kty2001</title>
 
-</aside>
+<span class="post-tag">Week 2</span>
+<span class="post-date-detail">2026년 06월 24일 — 06월 28일</span>
 
-회고 방법론에는 KPT, PMI, DAKI 등 여러가지가 있습니다 ! :- ) 
+<h1>이번 주 제목</h1>
+```
 
-참고하셔서 본인에게 도움이 되는 방식으로 커스터마이즈 해보세요.
+### 3. 본문 내용 작성
 
-**KPT**
+아래 섹션 순서대로 채운다.
 
-- `Keep` : 현재 만족하고 있는 부분, 계속 이어갔으면 하는 부분
-- `Problem` : 불편하게 느끼는 부분, 개선이 필요하다고 생각되는 부분
-- `Try` : Problem에 대한 해결책, 실행 가능한 것
+| 섹션 | 클래스 | 내용 |
+|---|---|---|
+| 이번 주 학습 내용 | `block` | 챕터별 `sub-block`으로 나눠 작성 |
+| KPT 회고 | `block` > `kpt-section` × 3 | Keep / Problem / Try 순서 |
+| 새롭게 발견한 것 | `block` | 인상적이었던 개념, 코드 예시 포함 가능 |
+| 트러블슈팅 | `block` > `trouble-card` | 발생한 에러, 원인, 수정 전/후 코드 |
+| 다음 주 목표 | `block` > `ul` | 3개 내외 |
+| 마무리 한마디 | `closing-quote` | 한두 문장, 스스로를 다독이는 말 |
+
+트러블슈팅이 없는 주차는 해당 섹션을 삭제해도 된다.
+
+### 4. index.html에 링크 추가
+
+`index.html`의 포스트 목록 맨 위에 추가 (최신순):
+
+```html
+<a href="posts/week2.html" class="post-item">
+  <div class="post-item-left">
+    <span class="post-week">Week 2</span>
+    <span class="post-title">이번 주 제목</span>
+  </div>
+  <span class="post-date">2026.06.24 — 06.28</span>
+</a>
+```
+
+### 5. 커밋 & 배포
+
+```bash
+git add .
+git commit -m "Add week2"
+git push origin main
+```
+
+배포 후 `https://kty2001.github.io` 에서 확인 (반영까지 1~2분 소요).
+
+---
+
+## 섹션별 작성 팁
+
+### 이번 주 학습 내용
+
+챕터 단위로 `sub-block`을 나눈다. 개념 설명과 함께 헷갈렸던 부분이나 흥미로웠던 동작 방식을 짧게 적는다.
+
+```html
+<div class="sub-block">
+  <h3 class="sub-block-title">01. 챕터명</h3>
+  <p>간단한 요약</p>
+  <ul>
+    <li><code>키워드</code> — 설명</li>
+  </ul>
+</div>
+```
+
+### KPT 회고
+
+- **Keep** — 잘 됐던 것, 계속할 것
+- **Problem** — 아쉬웠던 것, 반복된 실수
+- **Try** — Problem에 대한 구체적인 해결책
+
+```html
+<div class="kpt-section">
+  <h3 class="kpt-section-title">Keep</h3>
+  <p>내용</p>
+</div>
+```
+
+### 트러블슈팅
+
+에러 메시지, 원인 분석, 수정 전/후 코드를 함께 기록한다.
+코드 블록은 `<div class="code-block"><code>` 사용.
+
+```html
+<div class="trouble-card">
+  <p class="trouble-card-title">문제 : 에러 제목</p>
+  <p>상황 설명</p>
+  <div class="code-block"><code>수정 전 코드</code></div>
+  <p>원인 설명</p>
+  <div class="code-block"><code>수정 후 코드</code></div>
+  <p>배운 점</p>
+</div>
+```
+
+---
+
+## 회고 방법론 참고
+
+**KPT** (이 블로그의 기본 형식)
+- Keep / Problem / Try
 
 **PMI**
+- Plus / Minus / Impressive
 
-- `Plus` : 좋았던 점
-- `Minus` : 아쉬웠던 점
-- `Impressive` : 인상적이었던 점
+**The four Fs**
+- Facts / Feelings / Findings / Future
 
-**DAKI**
-
-- `DROP` : 프로젝트나 작업 과정에서 더 이상 필요하지 않거나 비효율적인 요소를 식별, 제거
-- `ADD` : 새로운 아이디어, 도구 , 프로세스 도입
-- `KEEP` : 현재 잘 하고 있는 것 들을 유지
-- `IMPROVE` : 현재의 개선이 필요한 부분을 찾아 내고 개선
-
-**The four Fs** (참고링크)
-
-- **`FACTS`(사실, 객관)** : 이번 일주일 동안 있었던 일, 내가 한 일
-- **`FEELINGS`(느낌, 주관)** : 나의 감정적인 반응, 느낌
-- **`FINDINGS`(배운 것)** : 그 상황으로부터 내가 배운 것, 얻은 것
-- **`FUTURE`(미래)** : 배운 것을 미래에는 어떻게 적용할 지
-
-<aside>
-❗ **주의! 글쓰기 자체에 매몰되지 마세요**
-
-</aside>
-
-- 주간회고는 어디까지나 좋은 개발자로 성장하기 위한 `도구`입니다.
-- 수려한 문장체, 완벽한 기승전결은 중요하지 않습니다.
-
-<aside>
-📜 **일기의 내용보단 트러블 슈팅!**
-
-</aside>
-
-개념적인 부분 내용을 적는 것도 좋지만 실습하면서 겪었던 문제와 에러를 어떻게 해결했는지에 대해 적는 것도 중요해요! : - ) 
-
-- **예시**
-    
-    **문제1  : 액세스가 거부되었습니다.**
-    ⑴ (system) 해결책 : 주피터 노트북 및 관련 anaconda 프롬프트를 끄고 다시 해보기
-    
-    **문제 : 2 Environment: production WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.**
-    
-    ⑴ 개요 **:** 파이썬에서 plotly 코드 중 app.server.run()에서 뜨는 에러
-    
-    ⑵ 수정 전
-    
-    ```python
-    if __name__ == '__main__':
-        app.server.run()
-    ```
-    
-    ⑶ (**others**) 수정 후 **:** ip 주소를 개발환경과 동일하게 하면 포트를 5000번으로 알아서 지정해 줌. port 주소가 5000이 아니면 에러가 발생했음
-    
-    ```python
-    if __name__ == '__main__':
-        app.server.run(host='0.0.0.0')
-    ```
-    
-    ⑷ port를 개발환경과 동일하게 하고 실행시키면 'Address already in use' 에러가 발생
-    
-
-<aside>
-<img src="https://prod-files-secure.s3.us-west-2.amazonaws.com/84a4e78a-d866-4598-b488-6e3e3978ecae/e62be801-aec8-4640-a8b0-e25573db0c56/%ED%95%98%ED%8A%B8%EB%A5%B4%ED%83%84.png" alt="https://prod-files-secure.s3.us-west-2.amazonaws.com/84a4e78a-d866-4598-b488-6e3e3978ecae/e62be801-aec8-4640-a8b0-e25573db0c56/%ED%95%98%ED%8A%B8%EB%A5%B4%ED%83%84.png" width="40px" /> **제안, 글의 마무리는 스스로를 응원하는 말 한마디로**
-
-</aside>
-
-- 때로는 힘들고, 좌절스러울 때도 있겠지만, 긍정적인 마무리로 스스로를 다독여주시면 좋겠습니다. 지난 일주일은 더 나은 다음주를 위한 발판이었으니까요!
+방법론에 얽매이지 말고, 쓰다 보면 자연스럽게 자기만의 형식이 생긴다.

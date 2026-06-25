@@ -1,4 +1,54 @@
 # kty2001.github.io
 
-## 작성 가이드
-[블로그 회고 작성 가이드](https://playdatacademy.notion.site/WIL-c369e8df522e4811a76edc4cf74fcf06) 참고
+플레이데이터 부트캠프 주간회고 블로그.
+
+**블로그 주소:** https://kty2001.github.io
+
+---
+
+## 파일 구조
+
+```
+kty2001.github.io/
+├── index.html          # 메인 페이지 (포스트 목록)
+├── css/
+│   └── style.css       # 공통 스타일
+├── posts/
+│   ├── week1.html      # 1주차 회고
+│   ├── week2.html      # 2주차 회고
+│   └── ...
+├── guide.md            # 포스트 작성 가이드
+├── design.md           # 디자인 시스템 문서
+└── README.md
+```
+
+---
+
+## 새 주차 작성 방법
+
+1. `posts/week1.html` 복사 → `posts/weekN.html`
+2. 제목, 날짜, 본문 수정
+3. `index.html` 포스트 목록 맨 위에 링크 추가
+4. 커밋 & 푸시
+
+자세한 내용은 [guide.md](guide.md) 참고.
+
+---
+
+## 배포
+
+GitHub Pages 자동 배포. `main` 브랜치 push 시 1~2분 내 반영.
+
+```bash
+git add .
+git commit -m "Add weekN"
+git push origin main
+```
+
+---
+
+## 포스트 목록
+
+| 주차 | 제목 | 날짜 |
+|---|---|---|
+| Week 1 | Python 기초 문법 복습 | 2026.06.17 — 06.21 |
