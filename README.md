@@ -38,7 +38,6 @@ kty2001.github.io/
 ## 배포
 
 GitHub Pages 자동 배포. `main` 브랜치 push 시 1~2분 내 반영.
-
 ```bash
 git add .
 git commit -m "Add weekN"
