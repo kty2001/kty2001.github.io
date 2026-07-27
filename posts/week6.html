@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Week 6 주간회고 · kty2001</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-title">kty2001<span>.</span>log</a>
+      <a href="../index.html" class="nav-back">← 목록으로</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="post-hero">
+      <div class="container">
+        <div class="post-meta">
+          <span class="post-tag">Week 6</span>
+          <span class="post-date-detail">2026년 07월 20일 — 07월 24일</span>
+        </div>
+        <h1>머신러닝을 마무리하고, 딥러닝으로</h1>
+      </div>
+    </section>
+
+    <article class="post-content">
+      <div class="container">
+
+        <!-- ── 이번 주 학습 내용 ── -->
+        <div class="block">
+          <h2 class="block-title">이번 주 학습 내용</h2>
+          <p>이번 주는 크게 두 덩어리였다. 앞쪽 이틀은 지난주에 다 끝내지 못한 머신러닝의 나머지를 마무리했다. 정답이 없는 데이터를 다루는 군집화와 차원축소, 추천 시스템을 훑고, 신용 위험 예측 데이터로 EDA부터 불균형 처리까지 종합 프로젝트를 한 번 돌렸다. 그리고 뒤쪽 이틀은 드디어 딥러닝에 발을 들였다. 퍼셉트론에서 시작해서 PyTorch로 직접 신경망을 쌓아 분류 모델을 만드는 데까지 갔는데, 지난주에 사이킷런으로 하던 걸 이번엔 층을 직접 설계해서 해본다는 게 확실히 다른 감각이었다.</p>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">01. 차원축소 — PCA와 LDA는 목적이 달랐다</h3>
+            <p>iris의 4개 특성을 2개로 줄여서 그림으로 그려봤다. <code>PCA(n_components=2)</code>로 줄인 뒤 <code>explained_variance_ratio_</code>를 확인하니 <code>[0.730, 0.229]</code>, 합이 <code>0.958</code>로 나왔다. 4개였던 특성을 2개로 줄였는데도 원본 정보의 96%가 남아있다는 뜻이라, 나머지 4%만 잃고 절반으로 압축한 셈이었다.</p>
+            <ul>
+              <li>PCA는 정답(target)을 안 보고 데이터의 <strong>분산이 가장 큰 방향</strong>을 찾는 반면, LDA는 정답을 보고 <strong>클래스가 가장 잘 나뉘는 방향</strong>을 찾는다는 차이가 핵심이었다. 실제로 같은 iris를 LDA로 줄이니 세 품종이 PCA 때보다 훨씬 또렷하게 갈라졌다</li>
+              <li>PCA는 거리와 분산 기준으로 계산하기 때문에 그 전에 <code>StandardScaler</code>로 스케일을 맞춰줘야 한다는 것도 챙겼다. 스케일이 큰 특성이 있으면 그 특성이 분산을 독차지해버린다</li>
+              <li>선형 방식 말고 <code>KernelPCA(kernel='rbf')</code>나 <code>LocallyLinearEmbedding</code> 같은 비선형 축소도 있다는 걸 이름만이라도 접했다. 다만 커널 PCA는 되돌리기(역변환)가 어렵다는 특징이 있었다</li>
+            </ul>
+            <div class="code-block"><code>pca = PCA(n_components=2)
+iris_pca = pca.fit_transform(iris_scaled)
+pca.explained_variance_ratio_        # [0.730, 0.229]
+pca.explained_variance_ratio_.sum()  # 0.958 → 정보의 96% 보존</code></div>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">02. 군집화 — 정답 없이 데이터를 나눈다는 것</h3>
+            <p>지난주까지는 전부 정답이 있는 지도학습이었는데, 이번엔 정답 없이 비슷한 것끼리 묶는 비지도학습을 해봤다. <code>KMeans</code>로 데이터를 K개 덩어리로 나누고, <code>GaussianMixture</code>, <code>DBSCAN</code>까지 세 가지 방식을 비교했다.</p>
+            <ul>
+              <li>정답이 없으니 "잘 나뉘었는지"를 어떻게 판단하냐가 문제였는데, <code>silhouette_score</code>로 각 점이 자기 군집엔 가깝고 다른 군집과는 먼 정도를 수치화할 수 있었다. <code>make_blobs</code>로 만든 깔끔한 데이터에선 0.88이 나왔다</li>
+              <li>KMeans는 K를 미리 정해줘야 하고 둥근 모양 군집에 강한 반면, DBSCAN은 밀도 기반이라 K를 안 정해도 되고 이상치를 자동으로 걸러낸다는 차이가 있었다. 같은 데이터라도 어떤 방법을 쓰냐에 따라 나뉘는 모양이 달라졌다</li>
+            </ul>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">03. 고객 세그먼테이션 — RFM으로 진짜 데이터를 나눠보기</h3>
+            <p>온라인 소매점 거래 데이터(54만 건)로 고객을 그룹으로 나누는 실습을 했다. 이게 이번 군집화 파트에서 제일 실전 같았다. 취소 거래, 수량·단가가 0 이하인 행, CustomerID 없는 행을 걸러내니 54만 건에서 39.8만 건으로 줄었다.</p>
+            <ul>
+              <li>고객별로 <strong>Recency</strong>(마지막 구매 후 지난 일수), <strong>Frequency</strong>(구매 횟수), <strong>Monetary</strong>(총 구매액) 세 지표를 만들어 RFM 테이블을 구성한 뒤 KMeans로 묶었다. 마케팅에서 고객을 나눌 때 쓰는 방식이라는데, 세 숫자만으로 "충성 고객 / 이탈 위험 고객" 같은 그룹이 실제로 갈라지는 게 신기했다</li>
+              <li>구매액 분포가 한쪽으로 심하게 쏠려 있어서 IQR로 이상치를 자르기보다 <code>np.log1p</code>로 로그 변환을 하니 분포가 훨씬 완만해졌다. 상위 10% 고객이 전체 매출의 <strong>61%</strong>를 차지하고 있다는 것도 이때 확인했는데, 왜 기업이 소수 핵심 고객에 집중하는지 숫자로 와닿았다</li>
+            </ul>
+            <div class="code-block"><code>rfm_df = df_clean.groupby('CustomerID').agg(
+    Recency   = ('InvoiceDate', lambda x: (reference_date - x.max()).days),
+    Frequency = ('InvoiceNo', 'nunique'),
+    Monetary  = ('sale_amount', 'sum')
+).reset_index()</code></div>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">04. 추천 시스템 — 콘텐츠 기반과 협업 필터링</h3>
+            <p>추천이 어떤 원리로 돌아가는지 간단한 영화·평점 데이터로 두 방식을 짚어봤다. 규모가 작은 예제라 결과 자체보다 "무엇을 기준으로 추천하느냐"의 차이를 이해하는 게 목적이었다.</p>
+            <ul>
+              <li><strong>콘텐츠 기반</strong>은 내가 본 아이템의 특성(장르 등)과 비슷한 아이템을 코사인 유사도로 찾아 추천한다. 아이템 속성만 있으면 되지만, 한 번도 본 적 없는 새로운 취향은 추천하기 어려운 콜드 스타트 문제가 있었다</li>
+              <li><strong>협업 필터링</strong>은 "나와 취향이 비슷한 사람이 좋아한 것"을 추천한다. 사용자-아이템 평점 행렬을 만들고 사용자 간 유사도로 이웃을 찾는 방식인데, 이건 반대로 데이터(평점)가 어느 정도 쌓여 있어야 쓸모가 있었다. 두 방식을 합친 하이브리드가 왜 나왔는지 자연스럽게 이해됐다</li>
+            </ul>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">05. 신용 위험 예측 — ML 종합 프로젝트</h3>
+            <p>독일 신용 데이터(1,000명, 10개 컬럼)로 고객이 신용 위험군인지 예측하는 분류 모델을 처음부터 끝까지 만들어봤다. 지난주까지 배운 걸 한 데이터에 몰아서 써본 느낌이라 복습으로 딱 좋았다.</p>
+            <ul>
+              <li>Saving/Checking account 컬럼에 결측치가 각각 183개, 394개 있었는데, 잔고 정보가 아예 없는 것도 하나의 상태로 볼 수 있어서 그냥 삭제하지 않고 <code>'Others'</code> 카테고리로 채웠다. 결측치를 무조건 지우거나 평균으로 메우는 게 답이 아니라는 걸 다시 느꼈다</li>
+              <li>로지스틱회귀·나이브베이즈·SVM·결정트리·랜덤포레스트·XGBoost·보팅까지 한 번에 비교했다. 랜덤포레스트와 XGBoost는 학습 정확도가 1.0인데 테스트 F1은 0.55 언저리라 심하게 과적합돼 있었고, 로지스틱회귀는 위험군(bad)의 재현율이 0.16밖에 안 나와서 정작 잡아야 할 위험 고객을 거의 놓치고 있었다</li>
+              <li>원인은 데이터가 good 700 : bad 300으로 불균형이라는 데 있었다. <code>SMOTE</code>로 소수 클래스를 늘려 800개였던 학습 데이터를 1,120개(560:560)로 맞추니, 정확도 숫자보다 위험군을 실제로 잡아내는 능력이 개선됐다. 정확도 하나만 보면 안 된다는 걸 확실히 배운 실습이었다</li>
+              <li>마지막엔 <code>joblib</code>으로 학습한 모델을 <code>.joblib</code> 파일로 저장하고 다시 불러와 예측까지 해봤다. 매번 다시 학습시키지 않고 모델을 파일로 남겨둘 수 있다는 게, 나중에 서비스에 올릴 때 꼭 필요하겠다 싶었다</li>
+            </ul>
+            <div class="code-block"><code>from imblearn.over_sampling import SMOTE
+smote = SMOTE(random_state=SEED)
+X_train_over, y_train_over = smote.fit_resample(X_train, y_train)
+# (800, 9) → (1120, 9),  bad 240 → 560 으로 균형</code></div>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">06. 딥러닝의 출발점 — 퍼셉트론과 XOR</h3>
+            <p>후반부는 딥러닝이었다. 먼저 퍼셉트론이 뭔지부터 봤는데, 입력에 가중치를 곱해 더하고 임계값을 넘으면 1을 내는 아주 단순한 구조였다. numpy로 가중치와 편향만 바꿔서 AND·OR·NAND 게이트를 직접 만들어보니 "이게 신경망의 최소 단위구나" 싶었다.</p>
+            <ul>
+              <li>그런데 XOR은 이 단층 퍼셉트론으로 아무리 학습시켜도 풀리지 않았다. 직선 하나로는 XOR의 참/거짓을 나눌 수 없기 때문이었다. 층을 쌓고 사이에 비선형 활성화 함수를 넣자 비로소 풀렸는데, <strong>왜 "딥"러닝인지, 왜 은닉층과 활성화 함수가 필요한지</strong>가 이 하나의 예제에서 전부 설명됐다</li>
+              <li>이 XOR 실험이 이번 주에서 가장 인상 깊었다. 자세한 과정은 아래 트러블슈팅에 정리했다</li>
+            </ul>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">07. PyTorch 텐서와 행렬 연산</h3>
+            <p>신경망을 쌓기 전에 PyTorch의 기본 도구인 텐서를 익혔다. 결국 신경망의 한 층은 <code>입력 @ 가중치</code> 행렬 곱이라서, 행렬 연산과 차원(shape)을 다루는 감각이 먼저였다.</p>
+            <ul>
+              <li><code>nn.Linear</code>가 내부에서 하는 일이 사실은 <code>X @ W.T</code> 행렬 곱이라는 걸 손으로 같은 값을 계산해서 확인했다. 가중치를 직접 넣어보니 정말 똑같은 결과가 나왔다</li>
+              <li><code>view</code>/<code>reshape</code>로 모양 바꾸기, <code>squeeze</code>/<code>unsqueeze</code>로 크기 1인 차원을 넣고 빼기, <code>cat</code>/<code>stack</code>으로 텐서 합치기, 그리고 차원이 다른 텐서를 자동으로 맞춰주는 브로드캐스팅까지 하나씩 손에 익혔다. 앞으로 에러의 절반은 shape 안 맞아서 날 것 같다는 예감이 들어서 여기서 꼼꼼히 봐뒀다</li>
+              <li><code>mul_()</code>처럼 뒤에 <code>_</code>가 붙으면 원본을 바꾸는 in-place 연산이라는 것, numpy 배열과 텐서를 <code>from_numpy</code>/<code>.numpy()</code>로 오갈 수 있다는 것도 정리했다</li>
+            </ul>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">08. 활성화 함수 — 층 사이에 비선형을 넣는 이유</h3>
+            <p>층을 아무리 많이 쌓아도 그 사이에 비선형이 없으면 결국 하나의 직선과 다를 게 없다. 그래서 층 사이에 넣는 활성화 함수를 종류별로 그려보며 특징을 비교했다.</p>
+            <ul>
+              <li><strong>Sigmoid</strong>는 0~1 사이로 눌러주지만 입력이 크거나 작으면 기울기가 0에 가까워져 깊은 신경망에선 학습이 느려진다(기울기 소실). 그래서 요즘은 은닉층엔 잘 안 쓰고 이진분류 출력층에서만 쓴다는 걸 그래프로 확인했다</li>
+              <li><strong>ReLU</strong>는 음수를 0으로, 양수는 그대로 통과시키는 단순한 함수인데 양수 영역 기울기가 1이라 기울기가 잘 전달된다. 대신 음수만 계속 들어오면 그 뉴런이 죽어버리는 Dead ReLU 문제가 있어서, 음수에도 작은 기울기를 주는 <strong>Leaky ReLU</strong>가 이를 보완한다는 흐름으로 이해했다</li>
+              <li>정리하면 은닉층은 ReLU 계열이 기본, 출력층은 목적에 따라 이진분류=Sigmoid / 다중분류=Softmax / 회귀=활성화 없음. 이 표를 머리에 넣어두니 다음 실습에서 층을 설계할 때 헤매지 않았다</li>
+            </ul>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">09. 신경망으로 분류하기 — 이진분류와 다중분류</h3>
+            <p>배운 걸 모아 PyTorch로 실제 분류 모델을 두 개 만들었다. 유방암 데이터로 이진분류, iris로 다중분류를 했는데, 사이킷런에서 한 줄이던 걸 층 하나하나 쌓아서 만드니 모델 안에서 뭐가 일어나는지 훨씬 잘 보였다.</p>
+            <ul>
+              <li>유방암 이진분류는 입력 30개 → 25 → 20 → 15 → 5로 점점 줄여가며 사이사이 Leaky ReLU를 넣고 출력층은 Sigmoid + BCE Loss로 구성했다. 데이터를 6:2:2로 나눠 검증 손실이 개선되지 않으면 멈추는 early stopping까지 붙였더니 테스트 정확도 96.5%, ROC-AUC 0.998이 나왔다</li>
+              <li>iris 다중분류는 은닉 16 → 8에 ReLU, 출력 3개 노드로 두고 <code>CrossEntropyLoss</code>를 썼다. 여기서 헷갈렸던 게, 출력층에 Softmax를 안 넣었는데도 잘 돌아간 점이었다. 알고 보니 <code>CrossEntropyLoss</code>가 내부에 Softmax를 이미 품고 있어서, 출력층엔 활성화 없이 raw 점수(logit)만 내보내면 되는 거였다. 테스트 정확도는 0.93이 나왔다</li>
+            </ul>
+            <div class="code-block"><code>model = nn.Sequential(
+    nn.Linear(30, 25), nn.LeakyReLU(),
+    nn.Linear(25, 20), nn.LeakyReLU(),
+    nn.Linear(20, 15), nn.LeakyReLU(),
+    nn.Linear(15, 5),  nn.LeakyReLU(),
+    nn.Linear(5, 1),   nn.Sigmoid()
+)
+# 유방암 이진분류 → 테스트 정확도 96.52%, ROC-AUC 0.998</code></div>
+          </div>
+        </div>
+
+        <!-- ── KPT 회고 ── -->
+        <div class="block">
+          <h2 class="block-title">KPT 회고</h2>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Keep</h3>
+            <p>신용 위험 예측 프로젝트에서 지난주에 배운 전처리·모델 비교·튜닝·불균형 처리를 한 데이터에 몰아서 써본 게 좋았다. 흩어져 있던 개념들이 "하나의 문제를 푸는 흐름"으로 연결되는 감각이 이제 조금씩 잡힌다.</p>
+            <p>딥러닝에 들어갈 때 바로 복잡한 모델부터 건드리지 않고 퍼셉트론 → 행렬 연산 → 활성화 함수 → 신경망 순서로 밑바닥부터 쌓아 올린 게 만족스럽다. XOR 하나로 은닉층과 비선형이 왜 필요한지 먼저 이해하고 나니 그 뒤 실습이 훨씬 수월했다.</p>
+          </div>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Problem</h3>
+            <p>PyTorch 학습 루프(<code>zero_grad</code> → <code>backward</code> → <code>step</code>)를 예제 코드 보고 따라 쓰긴 했는데, 각 줄이 정확히 무슨 일을 하는지 아직 손에 완전히 붙진 않았다. 특히 역전파 과정은 개념적으로만 알고 있는 수준이다.</p>
+            <p>군집화나 추천 시스템은 예제 데이터가 작아서 원리만 훑고 지나간 느낌이 있다. 실루엣 점수 말고 군집 개수 K를 실제로 어떻게 정하는지 같은 실전 판단 기준은 아직 부족하다.</p>
+          </div>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Try</h3>
+            <p>PyTorch 학습 루프를 예제 없이 빈 화면에서 한 번 직접 짜본다. <code>optimizer.zero_grad()</code>를 빼먹으면 어떻게 되는지 일부러 틀려보면서 각 줄의 역할을 몸으로 익혀보려 한다. 그리고 모델을 만들 때마다 층 구조와 활성화 함수 선택 이유를 한 줄씩 주석으로 남겨서, 왜 그렇게 설계했는지를 스스로 설명할 수 있게 해본다.</p>
+          </div>
+        </div>
+
+        <!-- ── 새롭게 발견한 것 ── -->
+        <div class="block">
+          <h2 class="block-title">새롭게 발견한 것</h2>
+          <p><strong>PCA와 LDA는 이름은 비슷해도 목적이 다르다.</strong> 둘 다 차원을 줄이지만, PCA는 정답을 안 보고 데이터가 가장 넓게 퍼진 방향을 찾는 비지도 방식이고, LDA는 정답을 보고 클래스가 가장 잘 갈라지는 방향을 찾는 지도 방식이었다. 그래서 분류가 목적이라면 LDA로 줄인 쪽이 품종이 더 또렷하게 나뉘었다. "차원을 줄인다"는 같은 말 안에도 서로 다른 기준이 숨어 있었다.</p>
+
+          <p><strong>정확도 높은 게 좋은 모델이 아니다.</strong> 신용 데이터에서 로지스틱회귀는 전체 정확도는 그럴듯했지만 정작 위험군의 재현율이 0.16이라, 잡아야 할 위험 고객을 거의 다 놓치고 있었다. good 700 : bad 300으로 데이터가 기울어 있으면 "전부 good이라고 찍기만 해도" 정확도가 높게 나오기 때문이었다. 불균형 데이터에선 정확도 하나가 아니라 재현율·F1을 같이 봐야 한다는 걸 숫자로 실감했다.</p>
+
+          <p><strong>CrossEntropyLoss엔 Softmax가 이미 들어있다.</strong> 다중분류를 하면서 출력층에 당연히 Softmax를 넣어야 한다고 생각했는데, PyTorch의 <code>CrossEntropyLoss</code>는 내부에 Softmax를 품고 있어서 출력층엔 활성화 없이 raw 점수만 내보내면 됐다. 여기서 Softmax를 또 넣으면 두 번 적용되는 실수가 되는 거였다. 라이브러리가 무엇을 대신 해주는지 알아야 중복으로 넣는 실수를 피할 수 있다는 걸 배웠다.</p>
+        </div>
+
+        <!-- ── 트러블슈팅 ── -->
+        <div class="block">
+          <h2 class="block-title">트러블슈팅</h2>
+          <div class="trouble-card">
+            <p class="trouble-card-title">문제 : 단층 퍼셉트론으로는 XOR이 풀리지 않는다</p>
+            <p>단층 퍼셉트론에 Sigmoid를 붙여 XOR을 학습시켰더니, 5,000번을 돌려도 손실이 <code>0.6935</code>에서 꿈쩍도 하지 않았다. 예측 결과도 <code>[0, 1, 0, 1]</code>로 정답 <code>[0, 1, 1, 0]</code>과 어긋났다. 직선 하나로는 XOR의 참/거짓을 절대 나눌 수 없기 때문이었다.</p>
+            <div class="code-block"><code>-- 수정 전
+model = nn.Sequential(
+    nn.Linear(2, 1), nn.Sigmoid()
+)
+# 5000 epoch 내내 Loss: 0.6935, 예측 [0,1,0,1] (실패)</code></div>
+            <p>은닉층을 하나 넣고 그 뒤에 비선형 활성화 함수(Tanh)를 붙이자 손실이 <code>0.0007</code>까지 떨어지면서 예측이 정답과 완전히 일치했다. 층을 쌓고 비선형을 넣는 것만으로 직선으로 못 풀던 문제가 풀린다는 게, 딥러닝이 왜 필요한지를 한 방에 보여줬다.</p>
+            <div class="code-block"><code>-- 수정 후
+model = nn.Sequential(
+    nn.Linear(2, 4), nn.Tanh(),
+    nn.Linear(4, 1), nn.Sigmoid()
+)
+# Loss: 0.7101 → 0.0007, 예측 [0,1,1,0] (성공)</code></div>
+          </div>
+
+          <div class="trouble-card">
+            <p class="trouble-card-title">문제 : 손실을 기록하다 메모리가 계속 쌓인다</p>
+            <p>학습하면서 매 에폭의 손실을 리스트에 모아두는데, <code>loss</code>를 그대로 더하면 텐서가 가진 계산 그래프(autograd)까지 함께 참조돼서 이전 연산 기록이 메모리에서 안 풀리고 계속 쌓였다.</p>
+            <div class="code-block"><code>-- 수정 전
+valid_loss += loss          # Tensor를 그대로 누적 → 계산 그래프까지 참조</code></div>
+            <p><code>float()</code>로 숫자만 뽑아 더하니 계산 그래프를 떼어낸 순수 실수값만 저장돼서 문제가 사라졌다. 손실 기록처럼 학습에 다시 쓸 필요 없는 값은 텐서가 아니라 숫자로 빼서 저장해야 한다는 걸 알게 됐다.</p>
+            <div class="code-block"><code>-- 수정 후
+valid_loss += float(loss)   # 숫자만 저장 → 계산 그래프 분리</code></div>
+          </div>
+        </div>
+
+        <!-- ── 다음 주 목표 ── -->
+        <div class="block">
+          <h2 class="block-title">다음 주 목표</h2>
+          <ul>
+            <li>PyTorch 학습 루프를 예제 없이 직접 짜보면서 <code>zero_grad → backward → step</code> 각 줄의 역할을 손에 익히기</li>
+            <li>모델을 만들 때 층 구조와 활성화 함수를 왜 그렇게 골랐는지 한 줄씩 근거를 남기는 습관 들이기</li>
+            <li>이번 주 밑바닥부터 배운 신경망 개념을 더 깊은 모델·실전 데이터로 확장해보기</li>
+          </ul>
+        </div>
+
+        <!-- ── 마무리 한마디 ── -->
+        <div class="closing-quote">
+          사이킷런에서 한 줄이던 걸 층을 직접 쌓아 만들어보니, 편하게 쓰던 도구 안에서 무슨 일이 일어나는지가 조금씩 보이기 시작했다.<br>
+          이제 막 신경망의 첫 층을 쌓았을 뿐이지만, 다음 층이 기대되는 한 주였다.
+        </div>
+
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© 2026 kty2001 · <a href="https://github.com/kty2001" target="_blank">GitHub</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>
