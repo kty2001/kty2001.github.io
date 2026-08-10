@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="../css/style.css" />
 </head>
 <body>
@@ -44,7 +45,7 @@
               <li>크롤링한 데이터를 DB에 저장하는 연습문제를 풀면서 <code>mysql.connector</code> 말고 <code>pymysql</code>로도 똑같이 연결하고 저장할 수 있다는 걸 확인했다. 문법은 거의 같았다</li>
               <li>네이버 도서 API를 <code>urllib</code>으로 다시 호출해보면서, <code>pubdate</code> 값이 비어 있는 경우까지 고려해서 <code>datetime.strptime</code>으로 변환하기 전에 빈 문자열인지부터 체크하는 방어 코드를 추가했다</li>
             </ul>
-            <div class="code-block"><code>pub_str = book_info.get('pubdate', '')
+            <div class="code-block"><code class="language-python">pub_str = book_info.get('pubdate', '')
 
 if pub_str:
     pub_date = datetime.strptime(pub_str, '%Y%m%d').date()
@@ -61,7 +62,7 @@ else:
               <li>100만 개 원소를 반복문으로 처리했을 때(0.136초)와 벡터화 연산으로 처리했을 때(0.0042초)를 비교하니 30배 넘게 차이가 났다. 1억 개 합산에서는 순수 반복 대비 90배 가까이 차이 났다</li>
               <li><code>dtype='int32'</code>로 지정하면 <code>int64</code> 대비 메모리를 절반으로 줄일 수 있다는 것도 <code>nbytes</code>로 확인했고, <code>np.memmap</code>으로 큰 파일을 전부 메모리에 올리지 않고 일부만 읽는 방법도 살짝 다뤘다</li>
             </ul>
-            <div class="code-block"><code>for bran_i, fru_i, mon_i in zip(*np.where(sales_data > 150)):
+            <div class="code-block"><code class="language-python">for bran_i, fru_i, mon_i in zip(*np.where(sales_data > 150)):
     print(f'{mon_i+1}월 {bran_i}지점, 과일: {sales_info[fru_i]}, 판매: {sales_data[bran_i, fru_i, mon_i]}')</code></div>
           </div>
 
@@ -73,7 +74,7 @@ else:
               <li><code>resample('ME')</code>로 날짜 데이터를 월 단위로 리샘플링하고, <code>rolling(window=3).mean()</code>으로 이동평균을 구하는 것까지 이어졌다</li>
               <li>날짜/최저가 레코드만 남기기처럼 <code>sort_values</code> + <code>drop_duplicates</code> 조합, <code>loc</code>을 이용한 조건부 값 갱신도 여러 시나리오로 반복했다</li>
             </ul>
-            <div class="code-block"><code>grouped = df.groupby(['Department', 'Location'])['Salary'].mean().unstack()
+            <div class="code-block"><code class="language-python">grouped = df.groupby(['Department', 'Location'])['Salary'].mean().unstack()
 # Location을 열로 펼쳐서 부서 × 지역 급여 표로
 stacked = grouped.stack()  # 다시 원래 형태로</code></div>
           </div>
@@ -86,7 +87,7 @@ stacked = grouped.stack()  # 다시 원래 형태로</code></div>
               <li><code>imshow()</code> + <code>colorbar()</code>로 2차원 히트맵을 그리고, <code>LinearSegmentedColormap.from_list()</code>로 원하는 색 조합의 컬러맵을 직접 만들어봤다</li>
               <li>막대그래프 위에 <code>plt.text()</code>로 값 라벨을 직접 찍는 것, <code>plt.savefig()</code>로 그래프를 이미지 파일로 저장하는 것까지 익혔다</li>
             </ul>
-            <div class="code-block"><code>from matplotlib.colors import LinearSegmentedColormap
+            <div class="code-block"><code class="language-python">from matplotlib.colors import LinearSegmentedColormap
 
 colors = ['#0000FF', '#00FF00', '#FF0000']
 custom_cmap = LinearSegmentedColormap.from_list('custom', colors)
@@ -102,7 +103,7 @@ plt.imshow(data, cmap=custom_cmap)</code></div>
               <li>titanic 데이터셋으로 <code>barplot(hue=..., errorbar=None)</code>처럼 신뢰구간 표시를 끄는 옵션도 써봤다</li>
             </ul>
             <p>한글이 포함된 제목을 넣으려니 그래프 글자가 깨져서, <code>plt.rcParams['font.family'] = 'Malgun Gothic'</code>과 <code>plt.rcParams['axes.unicode_minus'] = False</code>를 미리 설정해두는 것도 배웠다.</p>
-            <div class="code-block"><code>plt.rcParams['font.family'] = 'Malgun Gothic'
+            <div class="code-block"><code class="language-python">plt.rcParams['font.family'] = 'Malgun Gothic'
 plt.rcParams['axes.unicode_minus'] = False
 
 sns.barplot(x=titanic['class'], y=titanic['survived'], hue=titanic.sex, errorbar=None)</code></div>
@@ -116,7 +117,7 @@ sns.barplot(x=titanic['class'], y=titanic['survived'], hue=titanic.sex, errorbar
               <li>결측치는 평균 대치, 비결측 값 중 무작위 추출로 대치, <code>IterativeImputer</code>를 이용한 다중대치법까지 세 단계로 비교해봤다. IQR로 이상치를 직접 계산해보고 <code>scipy.stats.iqr</code> 결과와 맞춰봤다</li>
               <li>표준화·정규화 수식을 직접 구현해보고 <code>StandardScaler</code>/<code>MinMaxScaler</code>와 비교하는 것도 해봤다. 마지막엔 주사위를 10만 번 굴린 표본평균 분포를 정규분포 곡선과 겹쳐 그려서 중심극한정리를 눈으로 확인했다</li>
             </ul>
-            <div class="code-block"><code>avg_income = df.groupby('region')['income'].transform('mean')
+            <div class="code-block"><code class="language-python">avg_income = df.groupby('region')['income'].transform('mean')
 df['region_avg_income'] = avg_income</code></div>
           </div>
 
@@ -129,7 +130,7 @@ df['region_avg_income'] = avg_income</code></div>
               <li>출생연도로 나이를 계산하고 청년/중장년/노년 3단계로 나눈 뒤, <code>groupby(['age', 'sex']).mean().unstack()</code>으로 남녀 소득을 나란히 펼쳐 소득비 추이를 그려봤다. 소득이 가장 높은 연령대는 50세였다</li>
               <li>직종코드 154개를 코드북 엑셀에서 따로 읽어와 직업명으로 매핑한 뒤 <code>merge</code>로 붙여서, 평균소득 상위·하위 직업들을 가로 막대그래프로 정리했다</li>
             </ul>
-            <div class="code-block"><code>data['sex'] = np.where(data['sex'] == 1.0, 'M', 'F')
+            <div class="code-block"><code class="language-python">data['sex'] = np.where(data['sex'] == 1.0, 'M', 'F')
 
 age_mean = data.dropna(subset=['income']).groupby(['age', 'sex'])['income'].mean().unstack()
 age_mean['ratio_M_over_F'] = age_mean['M'] / age_mean['F']</code></div>
@@ -195,12 +196,12 @@ age_mean['ratio_M_over_F'] = age_mean['M'] / age_mean['F']</code></div>
           <div class="trouble-card">
             <p class="trouble-card-title">문제 : to_datetime에서 날짜 형식을 못 찾겠다는 경고</p>
             <p>월 이름과 연도를 이어붙인 문자열을 <code>pd.to_datetime()</code>으로 변환하려는데, 형식을 지정하지 않아서 <code>UserWarning: Could not infer format</code> 경고가 떴다. 결과 자체는 나왔지만 매번 한 건씩 개별적으로 파싱한다는 경고였다.</p>
-            <div class="code-block"><code>-- 수정 전
+            <div class="code-block"><code class="language-python">-- 수정 전
 pd.to_datetime(df['Month'] + ' 2026')
 # UserWarning: Could not infer format, so each element will be
 # parsed individually, falling back to dateutil</code></div>
             <p>형식을 미리 정해두지 않으면 pandas가 각 값을 하나하나 추측해서 변환하느라 느려지고, 값에 따라 다르게 해석될 위험도 있었다. <code>format</code> 인자를 명시하면 경고 없이 훨씬 안정적으로 변환됐다.</p>
-            <div class="code-block"><code>-- 수정 후
+            <div class="code-block"><code class="language-python">-- 수정 후
 pd.to_datetime(df['Month'] + ' 2026', format='%B %Y')</code></div>
             <p>날짜 변환은 형식을 명시하는 게 기본이라는 걸 경고를 보고서야 챙기게 됐다.</p>
           </div>
@@ -208,11 +209,11 @@ pd.to_datetime(df['Month'] + ' 2026', format='%B %Y')</code></div>
           <div class="trouble-card">
             <p class="trouble-card-title">문제 : 파일 경로 문자열에서 SyntaxWarning</p>
             <p>엑셀 코드북 파일을 읽어오려고 경로를 문자열로 적었는데, 폴더 이름에 괄호가 들어 있어서 <code>SyntaxWarning: invalid escape sequence '\('</code> 경고가 났다.</p>
-            <div class="code-block"><code>-- 수정 전
+            <div class="code-block"><code class="language-python">-- 수정 전
 pd.read_excel('data\(2025년 20차 한국복지패널조사) 조사설계서(beta1)\...')
 # SyntaxWarning: invalid escape sequence '\('</code></div>
             <p>일반 문자열에서 <code>\</code>는 이스케이프 문자로 해석되는데, 윈도우 경로에 쓰인 <code>\</code> 뒤에 괄호가 오면서 의도치 않은 조합으로 읽힌 것이었다. 경로 앞에 <code>r</code>을 붙여 raw string으로 만들면 <code>\</code>를 그대로의 문자로 취급해서 경고가 사라졌다.</p>
-            <div class="code-block"><code>-- 수정 후
+            <div class="code-block"><code class="language-python">-- 수정 후
 pd.read_excel(r'data\(2025년 20차 한국복지패널조사) 조사설계서(beta1)\...')</code></div>
             <p>동작 자체엔 문제가 없었지만, 윈도우 경로를 문자열로 다룰 땐 raw string을 기본으로 써야겠다고 생각했다.</p>
           </div>
@@ -243,6 +244,9 @@ pd.read_excel(r'data\(2025년 20차 한국복지패널조사) 조사설계서(be
       <p>© 2026 kty2001 · <a href="https://github.com/kty2001" target="_blank">GitHub</a></p>
     </div>
   </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
 
 </body>
 </html>

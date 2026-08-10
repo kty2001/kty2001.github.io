@@ -120,6 +120,16 @@ git push origin main
 </div>
 ```
 
+### 코드 하이라이팅
+
+`.code-block` 안의 `<code>`에 `class="language-python"` / `"language-sql"` 등을 붙이면 Prism.js가 자동으로 문법 색상을 입혀준다 (CDN, `<head>`의 prism-tomorrow 테마 + body 끝의 `prism.min.js` + `prism-autoloader.min.js`로 이미 연결돼 있음 — week1~8 참고). 코드가 아니라 실행 결과나 비교표를 그대로 붙여넣는 경우는 class를 생략해 하이라이팅 없이 일반 텍스트로 둔다.
+
+```html
+<div class="code-block"><code class="language-python">df.groupby('region')['income'].mean()</code></div>
+```
+
+새 언어(bash, javascript 등)가 필요하면 `language-{언어명}`만 붙이면 autoloader가 알아서 문법 파일을 불러온다.
+
 ---
 
 ## 회고 방법론 참고

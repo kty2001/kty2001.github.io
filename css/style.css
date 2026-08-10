@@ -312,6 +312,15 @@ body {
   display: block;
 }
 
+/* ── 코드 하이라이팅 (Prism) — 토큰 색상만 사용, 배경/여백은 .code-block 유지 ── */
+.code-block code[class*="language-"] {
+  background: none;
+  padding: 0;
+  margin: 0;
+  text-shadow: none;
+  white-space: pre;
+}
+
 /* ── KPT 순차 섹션 ── */
 .kpt-section {
   padding: var(--spacing-lg) 0;

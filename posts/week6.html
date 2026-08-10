@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="../css/style.css" />
 </head>
 <body>
@@ -45,7 +46,7 @@
               <li>PCA는 거리와 분산 기준으로 계산하기 때문에 그 전에 <code>StandardScaler</code>로 스케일을 맞춰줘야 한다는 것도 챙겼다. 스케일이 큰 특성이 있으면 그 특성이 분산을 독차지해버린다</li>
               <li>선형 방식 말고 <code>KernelPCA(kernel='rbf')</code>나 <code>LocallyLinearEmbedding</code> 같은 비선형 축소도 있다는 걸 이름만이라도 접했다. 다만 커널 PCA는 되돌리기(역변환)가 어렵다는 특징이 있었다</li>
             </ul>
-            <div class="code-block"><code>pca = PCA(n_components=2)
+            <div class="code-block"><code class="language-python">pca = PCA(n_components=2)
 iris_pca = pca.fit_transform(iris_scaled)
 pca.explained_variance_ratio_        # [0.730, 0.229]
 pca.explained_variance_ratio_.sum()  # 0.958 → 정보의 96% 보존</code></div>
@@ -67,7 +68,7 @@ pca.explained_variance_ratio_.sum()  # 0.958 → 정보의 96% 보존</code></di
               <li>고객별로 <strong>Recency</strong>(마지막 구매 후 지난 일수), <strong>Frequency</strong>(구매 횟수), <strong>Monetary</strong>(총 구매액) 세 지표를 만들어 RFM 테이블을 구성한 뒤 KMeans로 묶었다. 마케팅에서 고객을 나눌 때 쓰는 방식이라는데, 세 숫자만으로 "충성 고객 / 이탈 위험 고객" 같은 그룹이 실제로 갈라지는 게 신기했다</li>
               <li>구매액 분포가 한쪽으로 심하게 쏠려 있어서 IQR로 이상치를 자르기보다 <code>np.log1p</code>로 로그 변환을 하니 분포가 훨씬 완만해졌다. 상위 10% 고객이 전체 매출의 <strong>61%</strong>를 차지하고 있다는 것도 이때 확인했는데, 왜 기업이 소수 핵심 고객에 집중하는지 숫자로 와닿았다</li>
             </ul>
-            <div class="code-block"><code>rfm_df = df_clean.groupby('CustomerID').agg(
+            <div class="code-block"><code class="language-python">rfm_df = df_clean.groupby('CustomerID').agg(
     Recency   = ('InvoiceDate', lambda x: (reference_date - x.max()).days),
     Frequency = ('InvoiceNo', 'nunique'),
     Monetary  = ('sale_amount', 'sum')
@@ -92,7 +93,7 @@ pca.explained_variance_ratio_.sum()  # 0.958 → 정보의 96% 보존</code></di
               <li>원인은 데이터가 good 700 : bad 300으로 불균형이라는 데 있었다. <code>SMOTE</code>로 소수 클래스를 늘려 800개였던 학습 데이터를 1,120개(560:560)로 맞추니, 정확도 숫자보다 위험군을 실제로 잡아내는 능력이 개선됐다. 정확도 하나만 보면 안 된다는 걸 확실히 배운 실습이었다</li>
               <li>마지막엔 <code>joblib</code>으로 학습한 모델을 <code>.joblib</code> 파일로 저장하고 다시 불러와 예측까지 해봤다. 매번 다시 학습시키지 않고 모델을 파일로 남겨둘 수 있다는 게, 나중에 서비스에 올릴 때 꼭 필요하겠다 싶었다</li>
             </ul>
-            <div class="code-block"><code>from imblearn.over_sampling import SMOTE
+            <div class="code-block"><code class="language-python">from imblearn.over_sampling import SMOTE
 smote = SMOTE(random_state=SEED)
 X_train_over, y_train_over = smote.fit_resample(X_train, y_train)
 # (800, 9) → (1120, 9),  bad 240 → 560 으로 균형</code></div>
@@ -134,7 +135,7 @@ X_train_over, y_train_over = smote.fit_resample(X_train, y_train)
               <li>유방암 이진분류는 입력 30개 → 25 → 20 → 15 → 5로 점점 줄여가며 사이사이 Leaky ReLU를 넣고 출력층은 Sigmoid + BCE Loss로 구성했다. 데이터를 6:2:2로 나눠 검증 손실이 개선되지 않으면 멈추는 early stopping까지 붙였더니 테스트 정확도 96.5%, ROC-AUC 0.998이 나왔다</li>
               <li>iris 다중분류는 은닉 16 → 8에 ReLU, 출력 3개 노드로 두고 <code>CrossEntropyLoss</code>를 썼다. 여기서 헷갈렸던 게, 출력층에 Softmax를 안 넣었는데도 잘 돌아간 점이었다. 알고 보니 <code>CrossEntropyLoss</code>가 내부에 Softmax를 이미 품고 있어서, 출력층엔 활성화 없이 raw 점수(logit)만 내보내면 되는 거였다. 테스트 정확도는 0.93이 나왔다</li>
             </ul>
-            <div class="code-block"><code>model = nn.Sequential(
+            <div class="code-block"><code class="language-python">model = nn.Sequential(
     nn.Linear(30, 25), nn.LeakyReLU(),
     nn.Linear(25, 20), nn.LeakyReLU(),
     nn.Linear(20, 15), nn.LeakyReLU(),
@@ -183,13 +184,13 @@ X_train_over, y_train_over = smote.fit_resample(X_train, y_train)
           <div class="trouble-card">
             <p class="trouble-card-title">문제 : 단층 퍼셉트론으로는 XOR이 풀리지 않는다</p>
             <p>단층 퍼셉트론에 Sigmoid를 붙여 XOR을 학습시켰더니, 5,000번을 돌려도 손실이 <code>0.6935</code>에서 꿈쩍도 하지 않았다. 예측 결과도 <code>[0, 1, 0, 1]</code>로 정답 <code>[0, 1, 1, 0]</code>과 어긋났다. 직선 하나로는 XOR의 참/거짓을 절대 나눌 수 없기 때문이었다.</p>
-            <div class="code-block"><code>-- 수정 전
+            <div class="code-block"><code class="language-python">-- 수정 전
 model = nn.Sequential(
     nn.Linear(2, 1), nn.Sigmoid()
 )
 # 5000 epoch 내내 Loss: 0.6935, 예측 [0,1,0,1] (실패)</code></div>
             <p>은닉층을 하나 넣고 그 뒤에 비선형 활성화 함수(Tanh)를 붙이자 손실이 <code>0.0007</code>까지 떨어지면서 예측이 정답과 완전히 일치했다. 층을 쌓고 비선형을 넣는 것만으로 직선으로 못 풀던 문제가 풀린다는 게, 딥러닝이 왜 필요한지를 한 방에 보여줬다.</p>
-            <div class="code-block"><code>-- 수정 후
+            <div class="code-block"><code class="language-python">-- 수정 후
 model = nn.Sequential(
     nn.Linear(2, 4), nn.Tanh(),
     nn.Linear(4, 1), nn.Sigmoid()
@@ -200,10 +201,10 @@ model = nn.Sequential(
           <div class="trouble-card">
             <p class="trouble-card-title">문제 : 손실을 기록하다 메모리가 계속 쌓인다</p>
             <p>학습하면서 매 에폭의 손실을 리스트에 모아두는데, <code>loss</code>를 그대로 더하면 텐서가 가진 계산 그래프(autograd)까지 함께 참조돼서 이전 연산 기록이 메모리에서 안 풀리고 계속 쌓였다.</p>
-            <div class="code-block"><code>-- 수정 전
+            <div class="code-block"><code class="language-python">-- 수정 전
 valid_loss += loss          # Tensor를 그대로 누적 → 계산 그래프까지 참조</code></div>
             <p><code>float()</code>로 숫자만 뽑아 더하니 계산 그래프를 떼어낸 순수 실수값만 저장돼서 문제가 사라졌다. 손실 기록처럼 학습에 다시 쓸 필요 없는 값은 텐서가 아니라 숫자로 빼서 저장해야 한다는 걸 알게 됐다.</p>
-            <div class="code-block"><code>-- 수정 후
+            <div class="code-block"><code class="language-python">-- 수정 후
 valid_loss += float(loss)   # 숫자만 저장 → 계산 그래프 분리</code></div>
           </div>
         </div>
@@ -233,6 +234,9 @@ valid_loss += float(loss)   # 숫자만 저장 → 계산 그래프 분리</code
       <p>© 2026 kty2001 · <a href="https://github.com/kty2001" target="_blank">GitHub</a></p>
     </div>
   </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
 
 </body>
 </html>

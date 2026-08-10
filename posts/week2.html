@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="../css/style.css" />
 </head>
 <body>
@@ -144,7 +145,7 @@
               <li><code>WHERE col IN (SELECT col FROM ...)</code> — 서브쿼리 결과 집합과 비교. 같은 결과를 Self JOIN으로도 풀 수 있지만, 중복 제거 목적이라면 서브쿼리가 더 간결하다</li>
               <li>상관 서브쿼리(Correlated Subquery) — 외부 쿼리의 값을 참조하는 서브쿼리. 행마다 실행되므로 성능에 주의</li>
             </ul>
-            <div class="code-block"><code>-- 관리자인 사원 수 조회 — 서브쿼리 방식
+            <div class="code-block"><code class="language-sql">-- 관리자인 사원 수 조회 — 서브쿼리 방식
 SELECT COUNT(*)
 FROM employee e
 WHERE e.MANAGER_ID IN (SELECT e2.EMP_ID FROM employee e2);
@@ -159,7 +160,7 @@ JOIN employee e2 ON e.MANAGER_ID = e2.EMP_ID;</code></div>
               <li><code>GRANT ALL PRIVILEGES ON db명.* TO 사용자@'%'</code> — 특정 DB의 모든 권한을 사용자에게 부여. <code>'%'</code>는 모든 호스트에서 접속 허용</li>
               <li><code>SHOW GRANTS FOR 사용자@'%'</code> — 해당 사용자에게 부여된 권한 목록 확인</li>
             </ul>
-            <div class="code-block"><code>CREATE DATABASE employeedb;
+            <div class="code-block"><code class="language-sql">CREATE DATABASE employeedb;
 SHOW DATABASES;
 
 GRANT ALL PRIVILEGES ON menudb.* TO ohgiraffers@'%';
@@ -177,7 +178,7 @@ SHOW GRANTS FOR ohgiraffers@'%';</code></div>
               <li><code>auto()</code> — 값을 1부터 자동 증가. <code>@unique</code> 데코레이터를 붙이면 값 중복 시 오류 발생</li>
               <li><code>Enum('이름', ['A', 'B', 'C'])</code> — 클래스 없이 함수형으로 선언 가능</li>
             </ul>
-            <div class="code-block"><code>from enum import Enum, auto, unique
+            <div class="code-block"><code class="language-python">from enum import Enum, auto, unique
 
 @unique
 class Lang(Enum):
@@ -196,7 +197,7 @@ for lang in Lang:
               <li><code>dict(zip(keys, values))</code> — 두 리스트를 dict로 변환하는 관용구</li>
               <li><code>zip(*pairs)</code> — 언패킹으로 묶인 쌍을 다시 분리. 전치(transpose) 효과</li>
             </ul>
-            <div class="code-block"><code>letters = ['A', 'B', 'C']
+            <div class="code-block"><code class="language-python">letters = ['A', 'B', 'C']
 numbers = [1, 2, 3]
 
 print(dict(zip(letters, numbers)))  # {'A': 1, 'B': 2, 'C': 3}
@@ -209,7 +210,7 @@ print(l)  # ('A', 'B', 'C')</code></div>
               <li><code>sorted(iterable)</code> — 기본 오름차순. <code>reverse=True</code>로 내림차순</li>
               <li><code>key=lambda x: x[1]</code> — dict items를 value 기준으로 정렬할 때 자주 사용</li>
             </ul>
-            <div class="code-block"><code>d = {'b': 400, 'a': 200, 'c': 100}
+            <div class="code-block"><code class="language-python">d = {'b': 400, 'a': 200, 'c': 100}
 
 # value 기준 정렬
 print(sorted(d.items(), key=lambda x: x[1]))
@@ -242,7 +243,7 @@ print(sorted(d.items(), key=lambda x: x[0]))
               <li>타입별 클래스: <code>NumberColumn</code>, <code>TextColumn</code>, <code>CheckboxColumn</code>, <code>SelectboxColumn</code>, <code>DateColumn</code>, <code>TimeColumn</code></li>
               <li>시각화 클래스: <code>LineChartColumn</code>, <code>BarChartColumn</code>, <code>ProgressColumn</code></li>
             </ul>
-            <div class="code-block"><code>st.dataframe(df, column_config={
+            <div class="code-block"><code class="language-python">st.dataframe(df, column_config={
     "price": st.column_config.NumberColumn("가격", format="₩%.0f"),
     "category": st.column_config.SelectboxColumn(
         "카테고리", options=["전자제품", "의류", "가전제품"]
@@ -270,7 +271,7 @@ print(sorted(d.items(), key=lambda x: x[0]))
               <li><code>col1, col2 = st.columns(2)</code> — 화면을 N열로 분할. <code>with col1:</code> 블록 안에 위젯 배치</li>
             </ul>
             <p><strong>session_state</strong> — 스크립트 재실행 후에도 값을 유지하는 전역 상태 저장소다. Streamlit은 위젯을 조작할 때마다 스크립트 전체를 재실행하기 때문에 일반 변수는 매번 초기화된다. 상태를 보존해야 할 때는 session_state를 써야 한다.</p>
-            <div class="code-block"><code>if "count" not in st.session_state:
+            <div class="code-block"><code class="language-python">if "count" not in st.session_state:
     st.session_state.count = 0
 
 if st.button("손님 추가"):
@@ -309,7 +310,7 @@ st.write(f"손님 수: {st.session_state.count}")</code></div>
         <div class="block">
           <h2 class="block-title">새롭게 발견한 것</h2>
           <p><strong>FOREIGN KEY ON DELETE SET NULL.</strong> 부모 테이블의 행이 삭제됐을 때 자식 테이블의 참조 컬럼을 null로 바꿔주는 옵션이다. 참조 무결성을 유지하면서도 자식 데이터를 보존할 수 있다. 삭제 룰을 어떻게 설정하느냐에 따라 데이터 흐름이 완전히 달라진다는 게 흥미로웠다.</p>
-          <div class="code-block"><code>FOREIGN KEY (grade_code)
+          <div class="code-block"><code class="language-sql">FOREIGN KEY (grade_code)
     REFERENCES user_grade (grade_code)
     ON UPDATE SET NULL
     ON DELETE SET NULL
@@ -326,12 +327,12 @@ st.write(f"손님 수: {st.session_state.count}")</code></div>
           <div class="trouble-card">
             <p class="trouble-card-title">문제 : 로그 필터에서 의도하지 않은 줄이 출력됨</p>
             <p>로그 파일에서 <code>WARN</code> 또는 <code>ERROR</code>가 포함된 줄만 출력해야 했는데, 조건을 잘못 써서 <code>INFO</code> 줄까지 함께 출력됐다.</p>
-            <div class="code-block"><code># 수정 전 — INFO까지 포함됨
+            <div class="code-block"><code class="language-python"># 수정 전 — INFO까지 포함됨
 for l in logs:
     if 'INFO' in l or 'WARN' in l:  # INFO는 필터 대상이 아님
         print(l.strip())</code></div>
             <p>문제 조건을 다시 읽고 나서야 <code>INFO</code>가 아니라 <code>ERROR</code>임을 확인했다. 비슷한 키워드들이 나열되면 눈으로 훑다가 잘못 옮기기 쉽다.</p>
-            <div class="code-block"><code># 수정 후
+            <div class="code-block"><code class="language-python"># 수정 후
 for l in logs:
     if 'ERROR' in l or 'WARN' in l:
         print(l.strip())</code></div>
@@ -340,12 +341,12 @@ for l in logs:
           <div class="trouble-card">
             <p class="trouble-card-title">문제 : SQL WHERE에서 AND/OR 우선순위 혼동</p>
             <p>카테고리가 4이거나, 가격이 9000이면서 메뉴 코드가 10보다 큰 메뉴를 조회하려 했는데 결과가 의도와 달랐다.</p>
-            <div class="code-block"><code>-- 수정 전 — AND가 먼저 묶여 조건이 달라짐
+            <div class="code-block"><code class="language-sql">-- 수정 전 — AND가 먼저 묶여 조건이 달라짐
 WHERE category_code = 4
    OR menu_price = 9000 AND menu_code > 10;
 -- 실제 동작: category_code=4 OR (menu_price=9000 AND menu_code>10)</code></div>
             <p>AND의 우선순위가 OR보다 높다. 이 경우 결과가 우연히 맞을 수도 있지만 명시적 괄호 없이는 의도가 불분명하다. 복합 조건은 항상 괄호로 감싸는 습관이 필요하다.</p>
-            <div class="code-block"><code>-- 수정 후 — 괄호로 의도를 명확히
+            <div class="code-block"><code class="language-sql">-- 수정 후 — 괄호로 의도를 명확히
 WHERE category_code = 4
    OR (menu_price = 9000 AND menu_code > 10);</code></div>
           </div>
@@ -377,6 +378,9 @@ WHERE category_code = 4
       <p>© 2026 kty2001 · <a href="https://github.com/kty2001" target="_blank">GitHub</a></p>
     </div>
   </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
 
 </body>
 </html>

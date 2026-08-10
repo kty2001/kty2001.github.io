@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Week 8 주간회고 · kty2001</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-title">kty2001<span>.</span>log</a>
+      <a href="../index.html" class="nav-back">← 목록으로</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="post-hero">
+      <div class="container">
+        <div class="post-meta">
+          <span class="post-tag">Week 8</span>
+          <span class="post-date-detail">2026년 08월 03일 — 08월 07일</span>
+        </div>
+        <h1>모델 검증 지표를 정리하고, 자연어처리에 첫발을 내딛다</h1>
+      </div>
+    </section>
+
+    <article class="post-content">
+      <div class="container">
+
+        <!-- ── 이번 주 학습 내용 ── -->
+        <div class="block">
+          <h2 class="block-title">이번 주 학습 내용</h2>
+          <p>지난주까지 CNN과 전이학습으로 딥러닝 파트를 마무리했다면, 이번 주는 그동안 감으로만 써왔던 모델 검증·평가 지표를 한 번 정리하고 넘어가는 시간이었다. K-Fold 같은 검증 기법부터 혼동 행렬, ROC-AUC, 회귀 지표까지 훑고 나서, 작물 추천 딥러닝 프로젝트로 지금까지 배운 걸 한 번 더 종합했다. 후반부는 완전히 새로운 영역인 자연어처리(NLP) 입문이었다. 토큰화, 정제, 정규화 같은 기초 개념부터 문장을 벡터로 바꾸는 방법, 그리고 문서 간 유사도와 군집화까지 짧은 시간에 훑어봤는데, 지금까지 표 형태 데이터와 이미지만 다루다가 텍스트라는 새로운 데이터 형태를 만나니 접근 방식 자체가 꽤 달랐다.</p>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">01. 모델 검증 기법 — K-Fold와 ShuffleSplit</h3>
+            <p>지금까지는 <code>train_test_split</code>으로 한 번 나눈 데이터로만 검증해왔는데, 이번 주는 데이터를 나누는 방식 자체를 여러 개 배웠다. <strong>K-Fold</strong>는 데이터를 K개로 쪼갠 뒤 매번 다른 조각을 검증용으로 돌아가며 쓰는 방식이라, 데이터 전체가 한 번씩은 검증에 참여하게 된다. <strong>ShuffleSplit</strong>은 매번 무작위로 섞어서 학습/검증을 나누는데, K-Fold와 달리 한 데이터가 여러 번 검증에 뽑히거나 아예 안 뽑힐 수도 있다는 차이가 있었다.</p>
+            <ul>
+              <li>한 번의 분할로는 "운 좋게 검증셋이 쉬웠던 건 아닐까"하는 의심을 지우기 어려운데, 여러 번 나눠서 평균을 보면 그 모델의 성능이 훨씬 믿을 만해진다는 걸 이해했다</li>
+              <li>당장 프로젝트에 K-Fold를 쓰진 않았지만, 데이터가 적을 때는 이런 식으로 검증 자체를 여러 번 반복해서 성능을 더 안정적으로 추정한다는 개념을 잡아둔 정도다</li>
+            </ul>
+            <div class="code-block"><code class="language-python">kf = KFold(n_splits=3, shuffle=True, random_state=42)
+for train_idx, valid_idx in kf.split(X):
+    print("Train:", train_idx, "Validation:", valid_idx)</code></div>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">02. 분류·회귀 평가 지표 다시 정리</h3>
+            <p>정확도 하나만 보고 끝내던 습관에서 벗어나, 지표를 상황에 맞게 골라 쓰는 연습을 했다. 분류에서는 혼동 행렬(confusion matrix)로 어떤 클래스를 어떤 클래스로 헷갈렸는지 확인하고, ROC 곡선과 AUC로 임계값을 바꿔가며 모델의 판별력을 전체적으로 살펴봤다. 회귀에서는 MAE, MSE, RMSE, R²를 나란히 계산해보면서 각 지표가 오차를 어떻게 다르게 반영하는지 비교했다.</p>
+            <ul>
+              <li>MAE는 오차를 그대로 평균 내고, MSE는 오차를 제곱해서 큰 오차에 더 민감하게 반응한다. RMSE는 MSE에 루트를 씌워 원래 단위로 되돌린 값이라 실제 감으로 이해하기 편했고, R²는 "모델이 전체 분산 중 얼마나 설명했는지"를 0~1 사이 비율로 보여줘서 다른 지표보다 직관적이었다</li>
+              <li>AUC는 "무작위로 양성 하나, 음성 하나를 뽑았을 때 모델이 양성에 더 높은 점수를 줄 확률"이라는 설명을 들으니, 그냥 곡선 아래 면적이라고만 외웠던 게 조금 더 와닿았다</li>
+            </ul>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">03. 종합 프로젝트 — 작물 추천 모델</h3>
+            <p>토양 성분(N, P, K)과 온도·습도·산성도·강수량 7개 특성으로 22종의 작물 중 무엇을 심을지 추천하는 다중 분류 프로젝트를 진행했다. 기본 MLP(<code>Linear-ReLU</code> 2단)로 먼저 베이스라인을 잡고, 여기에 BatchNorm·Dropout·가중치 감쇠(weight decay)·학습률 스케줄러·그래디언트 클리핑·라벨 스무딩을 더한 개선 모델을 만들어 비교했다.</p>
+            <ul>
+              <li>테스트 정확도는 두 모델 모두 98.79%로 똑같이 나왔다. 개선 모델이 무조건 더 좋은 숫자를 낼 거라 생각했는데, 이 데이터는 애초에 클래스 구분이 명확해서 베이스라인만으로도 이미 충분했던 것 같다. 정규화 기법을 더한다고 항상 성능이 올라가는 건 아니라는 걸 확인한 게 오히려 더 남는 경험이었다</li>
+              <li>학습이 끝난 뒤에는 <code>StandardScaler</code>와 <code>LabelEncoder</code>를 <code>joblib</code>으로, 모델 가중치를 <code>torch.save</code>로 저장해서 새로운 토양 값을 넣으면 상위 3개 작물과 확률을 돌려주는 추천 함수까지 만들어봤다. 학습-저장-추론까지 이어지는 흐름을 처음부터 끝까지 직접 짜본 게 도움이 됐다</li>
+            </ul>
+            <div class="code-block"><code class="language-python">def recommend_crop(n, p, k, temperature, humidity, ph, rainfall, top_k=3):
+    sample_scaled = scaler.transform(pd.DataFrame([[n, p, k, temperature, humidity, ph, rainfall]], columns=feature_columns))
+    logits = model(torch.FloatTensor(sample_scaled))
+    probabilities = torch.softmax(logits, dim=1)[0]
+    top_probabilities, top_indices = torch.topk(probabilities, k=top_k)
+    return label_encoder.inverse_transform(top_indices.numpy()), top_probabilities</code></div>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">04. 자연어처리 입문 — 토큰화와 품사 태깅</h3>
+            <p>NLP의 첫 단계인 토큰화(tokenization)부터 시작했다. 문장을 의미 있는 단위로 쪼개는 작업인데, 영어는 <code>nltk.word_tokenize</code>, <code>WordPunctTokenizer</code>, <code>TreebankWordTokenizer</code>처럼 같은 문장도 도구마다 구두점·축약형(<code>don't</code> → <code>do</code> + <code>n't</code>)을 처리하는 규칙이 조금씩 다르다는 걸 직접 비교하며 확인했다. 한국어는 <code>kss</code>로 문장을 나누고 <code>KoNLPy</code>의 <code>Okt</code>로 형태소 분석과 품사 태깅을 해봤다.</p>
+            <ul>
+              <li>BERT 토크나이저는 단어를 <code>un</code>, <code>##ha</code>, <code>##pp</code>, <code>##iness</code>처럼 부분(subword)으로 쪼개고, 이어지는 조각 앞에는 <code>##</code>을 붙인다는 규칙이 흥미로웠다. 사전에 없는 단어도 조각 조합으로 표현할 수 있어서, 처음 보는 단어를 통째로 모른다고 처리하는 문제를 줄여준다고 한다</li>
+              <li>품사 태깅은 영어는 <code>nltk.pos_tag</code>나 <code>spacy</code>로, 한국어는 <code>Okt.pos()</code>로 해볼 수 있었는데, 태그 체계 자체가 언어마다 다르게 설계돼 있어서 "명사·동사"처럼 큰 틀은 같아도 세부 태그는 서로 대응이 딱 맞아떨어지지는 않았다</li>
+            </ul>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">05. 정제와 정규화</h3>
+            <p>토큰화 다음은 정제(cleansing)와 정규화(normalization)였다. 정제는 특수문자나 의미 없는 노이즈를 걸러내는 작업이고, 정규화는 표기만 다른 단어들을 같은 의미로 통일하는 작업이다. 실습에서는 등장 빈도가 너무 낮거나 너무 짧은 단어를 걸러내고, 영어는 <code>nltk.corpus.stopwords</code>, 한국어는 미리 준비된 불용어 목록 파일로 조사·어미 같은 불용어를 제거해봤다.</p>
+            <ul>
+              <li>한국어 불용어 제거가 영어보다 까다롭게 느껴졌다. 영어는 <code>is</code>, <code>the</code>처럼 단어 자체가 불용어인 경우가 많은데, 한국어는 형태소 분석으로 조사·어미를 먼저 떼어내야 그다음에 불용어 목록과 비교하는 게 의미가 있었다</li>
+              <li>단순히 등장 횟수가 2번 미만인 단어를 걸러내는 것만으로도 의미 없는 토큰이 꽤 줄어드는 걸 보고, 정제가 이후 벡터화 단계의 결과물 품질에 직접 영향을 준다는 걸 체감했다</li>
+            </ul>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">06. 텍스트를 숫자로 — BOW와 TF-IDF</h3>
+            <p>모델이 텍스트를 이해하려면 결국 숫자(벡터)로 바꿔야 한다. 가장 단순한 방법인 BOW(Bag of Words)는 <code>CountVectorizer</code>로 단어가 문서에 몇 번 등장했는지만 세는 방식이었고, <strong>TF-IDF</strong>는 여기에 "여러 문서에 공통으로 자주 나오는 단어일수록 중요도를 낮춘다"는 아이디어를 더한 방식이었다.</p>
+            <ul>
+              <li>단순 빈도(BOW)로는 <code>the</code>, <code>is</code>처럼 흔한 단어가 높은 값을 갖기 쉬운데, TF-IDF는 한 문서에서는 자주 나오지만 전체 문서에서는 드물게 나오는 단어에 더 높은 가중치를 준다. "그 문서를 다른 문서와 구별 짓는 단어"에 점수를 더 준다는 개념이 명확하게 이해됐다</li>
+              <li><code>max_df</code>, <code>min_df</code>, <code>ngram_range</code> 같은 파라미터로 너무 흔하거나 너무 드문 단어를 걸러내고, unigram뿐 아니라 bigram까지 함께 고려할 수 있다는 것도 새로 알았다</li>
+            </ul>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">07. 문서 유사도와 군집화</h3>
+            <p>문장을 TF-IDF 벡터로 바꾸고 나면, 벡터 간 <strong>코사인 유사도</strong>로 두 문서가 얼마나 비슷한 방향을 향하는지 계산할 수 있다. 크기가 아니라 방향(각도)만 비교하기 때문에 문서 길이가 달라도 공정하게 비교할 수 있다는 점이 인상적이었다. 이 개념을 그대로 활용해서, 리뷰 텍스트 데이터셋(Opinosis)을 표제어 추출(lemmatization) 후 TF-IDF로 벡터화하고 <code>KMeans</code>로 4개 군집으로 나눠본 뒤, 같은 군집 안에서 특정 문서와 가장 유사한 문서를 코사인 유사도 순으로 뽑아 순위를 매겨봤다.</p>
+            <ul>
+              <li>같은 군집으로 묶인 문서들이 실제로 비슷한 주제(예: 호텔 리뷰끼리, 전자기기 리뷰끼리)로 모이는 걸 확인하면서, 라벨 없이도 텍스트를 벡터 공간에서의 거리만으로 의미 있게 묶을 수 있다는 게 신기했다</li>
+              <li>클러스터 중심(centroid) 벡터에서 값이 큰 순서로 단어를 뽑아보면 그 군집을 대표하는 키워드를 역으로 추출할 수 있었는데, 숫자로만 이루어진 벡터에서 다시 사람이 읽을 수 있는 의미를 꺼내는 과정이 재미있었다</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ── KPT 회고 ── -->
+        <div class="block">
+          <h2 class="block-title">KPT 회고</h2>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Keep</h3>
+            <p>지금까지 정확도 위주로만 봐왔던 모델 평가를, 이번 주에 혼동 행렬·ROC-AUC·회귀 지표까지 상황에 맞게 골라 쓸 수 있도록 한 번 정리한 게 좋았다. 작물 추천 프로젝트도 전처리부터 학습·저장·추론 함수까지 끝까지 이어서 돌려본 덕분에, 실제로 모델을 "쓰는" 단계까지 한 바퀴 경험할 수 있었다.</p>
+            <p>완전히 새로운 영역인 NLP를 시작했는데도 생각보다 낯설지 않게 받아들여졌다. 지금까지 배운 벡터, 유사도, 군집화 같은 개념이 데이터 형태만 바뀌었을 뿐 그대로 이어진다는 걸 느낀 게 이번 주의 가장 큰 수확이었다.</p>
+          </div>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Problem</h3>
+            <p>작물 추천 프로젝트에서 개선 모델의 검증 손실(0.44)이 베이스라인(0.02)보다 훨씬 높게 나온 걸 처음엔 "오히려 나빠졌나" 하고 오해했다. 손실 값을 그대로 비교하면 안 되는 경우가 있다는 걸 뒤늦게 알았다(아래 트러블슈팅 참고).</p>
+            <p>한국어 형태소 분석 결과가 기대한 만큼 깔끔하지 않았다. <code>Okt</code>로 "왜 나를"을 분석하면 "나를"이 명사가 아닌 동사로 태깅되는 등, 영어 품사 태깅보다 오분석이 눈에 더 잘 띄었는데 왜 그런지는 아직 깊이 파보지 못했다.</p>
+          </div>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Try</h3>
+            <p>다음 주에는 K-Fold 교차 검증을 실제 프로젝트에 적용해서, 한 번의 분할로 얻은 성능과 여러 번 평균 낸 성능이 얼마나 차이 나는지 직접 비교해보고 싶다. NLP 쪽은 TF-IDF 기반 벡터화의 한계(단어 순서·문맥을 반영하지 못하는 점)를 이어서 확인해보고 싶다.</p>
+          </div>
+        </div>
+
+        <!-- ── 새롭게 발견한 것 ── -->
+        <div class="block">
+          <h2 class="block-title">새롭게 발견한 것</h2>
+          <p><strong>코사인 유사도는 벡터의 방향만 본다.</strong> 문서 길이가 길어서 단어 등장 횟수가 전반적으로 많아지더라도, TF-IDF 벡터를 정규화한 뒤 각도로만 비교하기 때문에 짧은 문서와 긴 문서를 공평하게 비교할 수 있다는 걸 실습으로 확인했다. 유클리드 거리처럼 크기 자체를 재는 지표와는 접근 자체가 다르다는 게 흥미로웠다.</p>
+
+          <p><strong>BERT의 서브워드 토큰화는 단어를 조각내서 미등록 단어 문제를 줄인다.</strong> <code>unhappiness</code>를 <code>un</code> + <code>##ha</code> + <code>##pp</code> + <code>##iness</code>로 쪼개는 걸 보고, 사전에 없는 단어도 이미 알고 있는 조각들의 조합으로 표현할 수 있다는 아이디어가 인상 깊었다. 지금까지 "모르는 단어는 그냥 모른다"로 처리하던 방식과는 다른 접근이었다.</p>
+
+          <p><strong>정규화 기법을 더한다고 성능이 항상 좋아지는 건 아니다.</strong> 작물 추천 모델에서 BatchNorm·Dropout·라벨 스무딩을 더한 개선 모델과 베이스라인 모델의 테스트 정확도가 98.79%로 완전히 같았다. 이 데이터는 이미 클래스 구분이 뚜렷해서 베이스라인만으로 충분했던 것으로 보이는데, 기법을 더한다고 무조건 좋아지는 게 아니라 데이터 특성에 따라 필요한 만큼만 써야 한다는 걸 숫자로 확인했다.</p>
+        </div>
+
+        <!-- ── 트러블슈팅 ── -->
+        <div class="block">
+          <h2 class="block-title">트러블슈팅</h2>
+          <div class="trouble-card">
+            <p class="trouble-card-title">문제 : 정확도는 같은데 개선 모델의 검증 손실이 베이스라인보다 훨씬 높게 나왔다</p>
+            <p>베이스라인 모델의 최저 검증 손실은 0.0179, 개선 모델은 0.4428로 20배 넘게 차이가 났다. 그런데 테스트 정확도는 두 모델 모두 98.79%로 정확히 같았다. 처음엔 개선 모델 학습이 잘못됐다고 생각했다.</p>
+            <div class="code-block"><code class="language-python">baseline_criterion = nn.CrossEntropyLoss()
+improved_criterion = nn.CrossEntropyLoss(label_smoothing=0.05)</code></div>
+            <p>원인은 개선 모델에만 적용한 <code>label_smoothing=0.05</code>였다. 라벨 스무딩을 쓰면 정답 클래스의 목표 확률을 100%가 아니라 95% 정도로 낮추고 나머지를 다른 클래스에 조금씩 나눠주기 때문에, 모델이 완벽하게 맞혀도 손실이 0에 수렴하지 않고 일정 수준에서 바닥을 친다. 즉 손실 함수 자체가 다르면 손실 값을 그대로 비교하면 안 되고, 정확도나 F1처럼 같은 기준으로 계산되는 지표로 비교해야 한다는 걸 배웠다.</p>
+          </div>
+        </div>
+
+        <!-- ── 다음 주 목표 ── -->
+        <div class="block">
+          <h2 class="block-title">다음 주 목표</h2>
+          <ul>
+            <li>K-Fold 교차 검증을 실제 프로젝트에 적용해서 단일 분할과 성능 차이 비교해보기</li>
+            <li>TF-IDF의 한계(단어 순서·문맥 미반영)를 확인하고, 이를 보완하는 다음 단계 임베딩 방식 알아보기</li>
+            <li>한국어 형태소 분석이 오분석하는 케이스를 더 모아보고 원인 파악해보기</li>
+          </ul>
+        </div>
+
+        <!-- ── 마무리 한마디 ── -->
+        <div class="closing-quote">
+          손실 값 하나도 손실 함수가 다르면 그대로 비교하면 안 된다는 걸 이번 주에 제대로 배웠다.<br>
+          완전히 새로운 텍스트 데이터를 만났지만, 결국 벡터·유사도·군집이라는 익숙한 개념 위에서 움직인다는 걸 느낀 한 주였다.
+        </div>
+
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© 2026 kty2001 · <a href="https://github.com/kty2001" target="_blank">GitHub</a></p>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
+</body>
+</html>

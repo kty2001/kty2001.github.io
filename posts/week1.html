@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="../css/style.css" />
 </head>
 <body>
@@ -125,7 +126,7 @@
         <div class="block">
           <h2 class="block-title">새롭게 발견한 것</h2>
           <p><strong>클래스 변수의 공유 함정.</strong> 클래스 변수로 선언한 리스트는 모든 인스턴스가 공유한다. 인스턴스에서 <code>append</code>로 수정하면 클래스 변수 자체가 바뀌어버린다.</p>
-          <div class="code-block"><code># 잘못된 예 — skills가 모든 인스턴스에 공유됨
+          <div class="code-block"><code class="language-python"># 잘못된 예 — skills가 모든 인스턴스에 공유됨
 class Character:
     skills = []  # 클래스 변수
 
@@ -151,7 +152,7 @@ class Character:
           <div class="trouble-card">
             <p class="trouble-card-title">문제 : super().__init__() 호출 시 TypeError 발생</p>
             <p>다단계 상속에서 <code>super().__init__()</code>을 호출할 때 <code>self</code>를 명시적으로 넘겼더니 인자 개수 오류가 발생했다.</p>
-            <div class="code-block"><code># 수정 전 — self를 직접 전달
+            <div class="code-block"><code class="language-python"># 수정 전 — self를 직접 전달
 class Student(Learner):
     def __init__(self, name, subject):
         super().__init__(self, subject)  # TypeError!
@@ -159,7 +160,7 @@ class Student(Learner):
 
 # TypeError: Learner.__init__() takes 2 positional arguments but 3 were given</code></div>
             <p><code>super().__init__()</code>은 이미 인스턴스에 바인딩된 메서드를 반환하기 때문에 <code>self</code>가 자동으로 전달된다. 여기에 <code>self</code>를 한 번 더 넘기면 인자가 하나 초과된다.</p>
-            <div class="code-block"><code># 수정 후 — self 제거
+            <div class="code-block"><code class="language-python"># 수정 후 — self 제거
 class Student(Learner):
     def __init__(self, name, subject):
         super().__init__(subject)  # 정상 동작
@@ -193,6 +194,9 @@ class Student(Learner):
       <p>© 2026 kty2001 · <a href="https://github.com/kty2001" target="_blank">GitHub</a></p>
     </div>
   </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
 
 </body>
 </html>

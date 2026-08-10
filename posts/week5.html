@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="../css/style.css" />
 </head>
 <body>
@@ -45,7 +46,7 @@
               <li>방 개수와 면적 두 변수로 집값을 예측하는 다중선형회귀도 연습했다. 3D로 회귀평면을 그려보니 변수가 두 개면 "선"이 아니라 "평면"으로 데이터를 맞추는 거라는 게 눈으로 확 들어왔다</li>
               <li><code>PolynomialFeatures</code>로 다항회귀와 단순선형회귀를 비교하고, <code>learning_curve()</code>로 학습/검증 오차 곡선을 그려서 과소적합·과적합을 눈으로 진단하는 법도 익혔다</li>
             </ul>
-            <div class="code-block"><code>for epoch in range(1000):
+            <div class="code-block"><code class="language-python">for epoch in range(1000):
     y_pred = w * X + b
     loss = np.mean((y - y_pred) ** 2)
     dw = -2 * np.mean(X * (y - y_pred))
@@ -63,7 +64,7 @@
               <li><code>Optuna</code>도 처음 써봤다. 200번의 시도(trial)를 자동으로 돌려가며 최적 조합을 찾아주는데, 격자 탐색과 달리 이전 시도 결과를 참고해서 다음 시도할 값을 정한다는 점이 달랐다. DT는 0.8324, RF는 0.8659까지 나왔다</li>
               <li>로지스틱회귀를 Optuna로 튜닝하는 중엔 <code>ConvergenceWarning: lbfgs failed to converge</code> 경고가 떴다. <code>max_iter</code>를 866까지 늘려서야 수렴했는데, 반복 횟수가 부족하면 최적해를 못 찾고 중간에 멈출 수 있다는 걸 처음 알았다</li>
             </ul>
-            <div class="code-block"><code>from sklearn.model_selection import GridSearchCV
+            <div class="code-block"><code class="language-python">from sklearn.model_selection import GridSearchCV
 
 param_grid = {'max_depth': [3, 5, 7, None], 'min_samples_split': [2, 5, 10], 'min_samples_leaf': [1, 2, 4]}
 grid = GridSearchCV(DecisionTreeClassifier(), param_grid, cv=5)
@@ -97,7 +98,7 @@ grid.fit(X_train, y_train)
               <li><code>ColumnTransformer</code> + <code>Pipeline</code>으로 로지스틱회귀·랜덤포레스트·GradientBoosting을 동일한 전처리로 비교하니 로지스틱회귀와 GradientBoosting이 f1_weighted 0.9172로 나란히 1위, 랜덤포레스트가 0.9155로 근소하게 낮았다</li>
               <li>가상의 새 사람 데이터를 만들어서 <code>best_pipeline.predict()</code>로 실제 예측까지 돌려봤다. "Extrovert"라는 결과가 나왔는데, 학습시킨 모델에 진짜 새 입력을 넣어보는 게 은근히 재밌었다</li>
             </ul>
-            <div class="code-block"><code>from sklearn.pipeline import Pipeline
+            <div class="code-block"><code class="language-python">from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 
 pipeline = Pipeline([
@@ -169,11 +170,11 @@ pipeline.fit(X_train, y_train)</code></div>
           <div class="trouble-card">
             <p class="trouble-card-title">문제 : 로지스틱회귀가 수렴하지 않는다는 경고</p>
             <p>Optuna로 로지스틱회귀를 튜닝하던 중 <code>ConvergenceWarning: lbfgs failed to converge (status=1)</code> 경고가 반복해서 떴다. 기본 <code>max_iter=100</code>으로는 최적해를 찾기 전에 반복이 끝나버린 것이었다.</p>
-            <div class="code-block"><code>-- 수정 전
+            <div class="code-block"><code class="language-python">-- 수정 전
 LogisticRegression()
 # ConvergenceWarning: lbfgs failed to converge after 117 iteration(s)</code></div>
             <p><code>max_iter</code> 값을 늘려주니 경고 없이 수렴했다. 반복 횟수가 부족하면 모델이 아직 최적점에 도달하기 전에 학습이 강제 종료된다는 뜻이라는 걸 알게 됐다.</p>
-            <div class="code-block"><code>-- 수정 후
+            <div class="code-block"><code class="language-python">-- 수정 후
 LogisticRegression(max_iter=866)
 # 경고 없이 수렴</code></div>
             <p>경고가 뜬다고 결과가 아예 못 쓰는 건 아니지만, 수렴 여부는 모델이 안정적으로 학습됐는지를 보여주는 신호라서 그냥 넘기지 않는 게 좋겠다고 생각했다.</p>
@@ -182,7 +183,7 @@ LogisticRegression(max_iter=866)
           <div class="trouble-card">
             <p class="trouble-card-title">문제 : SVC의 probability 옵션 사용 중단 경고</p>
             <p>Voting 앙상블에 <code>SVC(probability=True)</code>를 넣고 soft voting을 시도했더니 <code>FutureWarning: The probability parameter was deprecated in 1.9</code> 경고가 떴다.</p>
-            <div class="code-block"><code>-- 수정 전
+            <div class="code-block"><code class="language-python">-- 수정 전
 SVC(probability=True)
 # FutureWarning: Use CalibratedClassifierCV(SVC(), ensemble=False) instead</code></div>
             <p>사이킷런 최신 버전에서는 SVC에 확률 출력 기능을 내장하는 대신, 확률 보정을 별도 클래스로 분리하는 방향으로 바뀌고 있었다. 지금 당장은 동작하지만, 다음에 실전 프로젝트에서 SVM을 쓸 땐 안내된 방식으로 바꿔봐야겠다.</p>
@@ -214,6 +215,9 @@ SVC(probability=True)
       <p>© 2026 kty2001 · <a href="https://github.com/kty2001" target="_blank">GitHub</a></p>
     </div>
   </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
 
 </body>
 </html>
