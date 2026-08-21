@@ -1,1 +1,7 @@
 .claude
+.env
+
+data
+dataset
+
+*.sav
