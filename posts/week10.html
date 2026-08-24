@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Week 10 주간회고 · kty2001</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-title">kty2001<span>.</span>log</a>
+      <a href="../index.html" class="nav-back">← 목록으로</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="post-hero">
+      <div class="container">
+        <div class="post-meta">
+          <span class="post-tag">Week 10</span>
+          <span class="post-date-detail">2026년 08월 17일 — 08월 21일</span>
+        </div>
+        <h1>전이학습에서 LLM까지, 만드는 쪽에서 쓰는 쪽으로</h1>
+      </div>
+    </section>
+
+    <article class="post-content">
+      <div class="container">
+
+        <!-- ── 이번 주 학습 내용 ── -->
+        <div class="block">
+          <h2 class="block-title">이번 주 학습 내용</h2>
+          <p>월요일이 대체공휴일이라 4일짜리 주였는데, 내용은 오히려 지난주보다 넓었다. 지난주에 트랜스포머를 논문 구조대로 직접 조립해놓고 "이걸 실제로 학습시키려면 얼마나 걸릴까" 싶었는데, 이번 주 첫날이 바로 그 답이었다. 남이 학습시켜둔 모델을 가져와서 내 데이터로 조금만 더 학습시키는 <strong>전이학습</strong>이다. BERT를 뜯어보고, 네이버 영화 리뷰로 파인튜닝해서 허깅페이스 허브에 직접 올려봤다.</p>
+          <p>그리고 수요일부터는 아예 새 과정이 시작됐다. LLM이다. 여기서는 모델을 만들지 않는다. API로 부른다. 프롬프트를 어떻게 쓰는지, 하이퍼파라미터가 뭘 바꾸는지, 음성·임베딩·모더레이션·함수 호출 같은 주변 기능을 어떻게 붙이는지, 마지막으로 GPT를 내 데이터로 파인튜닝하고 로컬에서 LLM을 돌리는 것까지 갔다. 한 주 안에서 "모델을 직접 짜는 쪽"에서 "모델을 부리는 쪽"으로 관점이 통째로 넘어간 느낌이었다.</p>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">01. BERT 뜯어보기 — MLM과 NSP</h3>
+            <p>지난주 마지막에 "Encoder-only는 BERT, Decoder-only는 GPT류"라고 한 줄로 정리하고 넘어갔던 걸 이번엔 제대로 열어봤다. BERT가 어떻게 사전학습되는지가 핵심이었는데, 두 가지 문제를 동시에 푼다.</p>
+            <ul>
+              <li><strong>MLM(Masked Language Model)</strong>은 문장 중간의 단어를 가리고 그걸 맞히게 시킨다. 앞 단어만 보고 다음을 예측하는 방식과 달리 양쪽 문맥을 다 보고 가운데를 채우는 거라, 문장 이해 쪽에 강한 표현이 만들어진다는 설명이 납득이 갔다</li>
+              <li><strong>NSP(Next Sentence Prediction)</strong>는 두 문장을 주고 실제로 이어지는 문장인지 판단하게 한다. 문장 하나가 아니라 문장 사이의 관계를 학습시키는 장치였다</li>
+            </ul>
+            <div class="code-block"><code class="language-python">pipe = FillMaskPipeline(model=model, tokenizer=tokenizer)
+pipe('Soccer is a really fun [MASK]')   # sport, game, thing ... 순으로 후보가 나온다</code></div>
+            <p>토크나이저 출력도 처음으로 자세히 봤다. <code>tokenizer(sentence1, sentence2)</code>처럼 문장 두 개를 넣으면 <code>[CLS] A [SEP] B [SEP]</code> 형태로 합쳐지고, <code>token_type_ids</code>가 앞 문장은 0, 뒤 문장은 1로 채워져서 "어디까지가 첫 문장인지"를 모델에 알려준다. 이걸 DataFrame으로 토큰·<code>input_ids</code>·<code>token_type_ids</code>를 나란히 찍어보니 구조가 한눈에 들어왔다.</p>
+            <ul>
+              <li>NSP 실습에서는 문장 하나에 후보 문장 네 개를 붙여보고 <code>F.softmax(output.logits, dim=-1)[0]</code>으로 "이어질 확률"을 뽑아 정렬해봤다. 사람이 봐도 자연스러운 문장이 1등으로 올라오는 걸 보고 사전학습이 헛돌지 않았다는 게 실감났다</li>
+              <li><code>AutoTokenizer</code>, <code>AutoModelForMaskedLM</code> 같은 <strong>AutoClass</strong>도 여기서 배웠다. 모델 이름만 넘기면 알아서 맞는 클래스를 찾아준다는 게 편했는데, <code>print(model.__class__.__name__)</code>을 찍어보니 실제로는 <code>BertForMaskedLM</code>이 들어와 있었다. 마법이 아니라 이름표를 보고 매핑해주는 거였다</li>
+            </ul>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">02. NSMC로 BERT 파인튜닝하고 허브에 올리기</h3>
+            <p>이번 주에서 가장 손이 많이 간 실습이었다. 지난주에 양방향 LSTM으로 79.6%가 나왔던 네이버 영화 리뷰 감성분석을, 이번엔 <code>klue/bert-base</code>를 파인튜닝해서 다시 풀었다. 데이터는 학습 15,000건 · 테스트 5,000건만 샘플링해서 썼다.</p>
+            <p>구조를 새로 짤 일이 없었다. <code>BertForSequenceClassification.from_pretrained(..., num_labels=2)</code> 한 줄이면 BERT 위에 분류용 층이 붙은 모델이 나온다. 대신 처음 보는 게 두 개 있었다.</p>
+            <ul>
+              <li>허깅페이스 모델은 <code>labels</code>를 같이 넣어주면 <strong>손실까지 직접 계산해서 돌려준다</strong>. 그래서 학습 루프에 손실 함수를 따로 만들 필요가 없었다</li>
+              <li><strong>warmup 스케줄러</strong>를 처음 써봤다. 학습 초반에 학습률을 0에서부터 서서히 올린 뒤 다시 선형으로 떨어뜨리는 방식인데, 사전학습으로 이미 잘 잡혀 있는 가중치를 처음부터 큰 폭으로 흔들면 오히려 망가진다는 게 이유였다. 전체 스텝의 10%를 워밍업에 썼다</li>
+            </ul>
+            <div class="code-block"><code class="language-python">optimizer = torch.optim.AdamW(model.parameters(), lr=5e-5, weight_decay=0.1)
+num_training_steps = len(train_dataloader) * epochs
+lr_scheduler = get_scheduler('linear', optimizer=optimizer,
+                             num_warmup_steps=int(num_training_steps * 0.1),
+                             num_training_steps=num_training_steps)</code></div>
+            <div class="code-block"><code class="language-python">outputs = model(**batch)
+loss = outputs.loss          # 손실을 모델이 직접 돌려준다
+loss.backward()</code></div>
+            <p>학습률이 <code>5e-5</code>인 것도 눈에 띄었다. 지난주까지 밑바닥부터 학습시킬 때 쓰던 값보다 훨씬 작은데, "이미 배운 걸 조금만 조정한다"는 파인튜닝의 성격이 숫자에 그대로 드러나 있었다.</p>
+            <p>학습이 끝난 뒤가 더 재밌었다. <code>save_pretrained()</code>로 저장하니 442MB짜리 <code>model.safetensors</code>가 떨어졌고, 라벨 이름만 한글로 바꿔주면 파이프라인이 바로 "긍정"·"부정"을 뱉었다.</p>
+            <div class="code-block"><code class="language-python">model.config.id2label = {0: '부정', 1: '긍정'}
+model.push_to_hub('bert-base-nsmc')
+
+# 이후로는 이렇게 불러 쓸 수 있다
+pipeline('text-classification', model='kty2001/bert-base-nsmc')</code></div>
+            <p>내가 학습시킨 모델이 허브에 올라가고, 그걸 다시 <code>pipeline()</code> 한 줄로 불러 쓰는 순간이 이번 주에서 제일 인상적이었다. 지난주까지 남의 모델을 불러 쓰기만 했는데, 이제 그 자리에 내 모델 이름이 들어간다는 게 감각적으로 크게 달랐다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">03. pipeline() 한 줄로 훑은 태스크들</h3>
+            <p>같은 <code>pipeline()</code> 함수에 태스크 이름만 바꿔 넣으면서 일곱 가지를 훑었다. 번역, 감성분석, 제로샷 분류, 텍스트 생성, 빈칸 채우기, 개체명 인식, 질의응답이다. 영어 기본 모델로 한 번, 한국어 모델을 지정해서 한 번씩 돌려봤다.</p>
+            <ul>
+              <li><strong>제로샷 분류</strong>가 제일 신기했다. 학습된 적 없는 라벨을 그냥 문자열로 넘겨주면 그중에서 골라준다. 라벨을 마음대로 새로 만들어도 된다는 게 기존 분류 모델과 완전히 다른 접근이었다</li>
+              <li><strong>개체명 인식</strong>은 <code>grouped_entities=True</code>를 주니 여러 토큰으로 쪼개진 이름이 하나로 합쳐져서 나왔다. 서브워드로 쪼개진 걸 다시 붙이는 처리를 라이브러리가 대신 해주는 것이었다</li>
+              <li>한국어는 태스크마다 따로 모델을 지정해야 했다. 감성분석은 <code>sangrimlee/bert-base-multilingual-cased-nsmc</code>, 제로샷은 <code>joeddav/xlm-roberta-large-xnli</code>, 질의응답은 <code>klue/roberta-base</code> 식이었다. 기본 모델이 대부분 영어 기준이라 한국어를 쓰려면 모델을 찾아 끼워야 한다는 게 실무 감각으로 남았다</li>
+            </ul>
+            <div class="code-block"><code class="language-python">ko_zero_shot_clf('2026년 당신은 얼마나 잘 살고 있나요',
+                 candidate_labels=['사회', '정치', '경제', '건강'])</code></div>
+            <p>덤으로 이미지 생성도 잠깐 해봤다. <code>diffusers</code>의 <code>StableDiffusionPipeline</code>에 프롬프트를 넣으면 이미지가 나오는데, 텍스트만 다루던 과정에서 갑자기 그림이 나오니까 낯설면서 재밌었다. 로딩할 때 <code>torch_dtype=torch.float16</code>으로 정밀도를 낮춰서 GPU 메모리를 아끼는 것도 여기서 처음 봤다.</p>
+            <div class="code-block"><code class="language-python">pipe = StableDiffusionPipeline.from_pretrained(
+    'runwayml/stable-diffusion-v1-5', torch_dtype=torch.float16).to('cuda')
+image = pipe('A cute cat studying Tug').images[0]</code></div>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">04. 자연어처리 전 과정 총복습</h3>
+            <p>LLM 과정으로 넘어가기 전에 지금까지 배운 걸 한 노트북에 몰아서 다시 짚었다. 형태소 분석부터 TF-IDF, Word2Vec, 나이브 베이즈, N-gram, 퍼플렉서티까지 미니 예제로 훑는 방식이었는데, 그 와중에 안 해봤던 것 몇 개가 새로 나왔다.</p>
+            <ul>
+              <li>가장 유명한 임베딩 예제인 <strong>king − man + woman ≈ queen</strong>을 직접 돌려봤다. GloVe 벡터를 받아서 벡터 덧셈·뺄셈만 했는데 정말 queen이 1등으로 나왔다. 지난주에 유사도 숫자만 봤을 때보다, 의미가 벡터 공간의 <strong>방향</strong>으로 표현된다는 게 훨씬 와닿았다</li>
+              <li><strong>Doc2Vec</strong>은 단어가 아니라 문서 하나에 벡터를 붙이는 방식이었다. <code>TaggedDocument</code>로 문서마다 태그를 달아 학습시키고, <code>infer_vector</code>로 새 문서의 벡터를 뽑아낸다</li>
+              <li><strong>LDA 토픽 모델링</strong>으로 문서 뭉치에서 주제를 뽑아보기도 했다. 라벨이 없는 상태에서 단어 분포만으로 주제를 갈라내는 거라, 군집화의 텍스트 버전 같은 느낌이었다</li>
+              <li>텍스트 분류에 <strong>CNN</strong>을 쓰는 것도 처음 봤다. <code>Conv2d</code> 필터의 세로 크기를 3으로 잡으면 연속된 세 단어를 한 번에 보는 셈이라 3-gram 역할을 하고, 그 위에 맥스 풀링으로 제일 강한 신호만 남긴다. 지난주에 <code>Conv1d</code>를 시계열에 썼던 것과 같은 발상이었다</li>
+            </ul>
+            <div class="code-block"><code class="language-python">model.most_similar(positive=['king', 'woman'], negative=['man'], topn=3)</code></div>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">05. LLM 개론 — 규모, 인컨텍스트 러닝, 창발 능력</h3>
+            <p>수요일부터 LLM 과정이 시작됐다. 첫날은 코드보다 개념 정리가 대부분이었는데, 흐릿하게 알던 단어들이 정리돼서 좋았다.</p>
+            <ul>
+              <li>파라미터 규모에 따라 <strong>LLM</strong>(100B~1T+) / <strong>sLLM</strong>(13B~30B) / <strong>SLM</strong>(3B~13B, 단일 GPU나 온디바이스) / 초소형(임베딩·분류용)으로 나눠 부른다는 걸 알았다. 작은 모델은 파인튜닝 후 일반화가 잘 안 되는 경우가 많고 특히 10B 아래에서 그렇다는 얘기가 기억에 남는다</li>
+              <li><strong>인컨텍스트 러닝(In-Context Learning)</strong>은 가중치를 전혀 건드리지 않고 프롬프트 안의 예시만으로 태스크를 수행하는 것이다. 이름에 "러닝"이 붙어 있어서 학습이 일어나는 줄 알았는데, 학습이 아니라 <strong>이미 아는 것을 꺼내는 쪽</strong>에 가깝다는 설명이 인상적이었다. 그래서 한계도 명확하다. 컨텍스트 윈도우 크기에 갇히고, 예시의 순서나 형식에 결과가 흔들린다</li>
+              <li><strong>창발 능력(Emergent Abilities)</strong>은 모델이 일정 규모를 넘으면 없던 능력이 갑자기 생기는 현상이다. 점진적으로 좋아지는 게 아니라 비선형적으로 튀고, 언제 생길지 예측이 안 된다는 게 특징이었다. 다단계 추론이나 few-shot 학습이 그 예로 나왔다</li>
+            </ul>
+            <p>인컨텍스트 러닝과 파인튜닝을 비교한 표가 특히 유용했다. 프롬프트로 해결되는 문제에 굳이 파인튜닝을 하는 건 낭비고, 반대로 매번 긴 예시를 붙여야 하는 상황이면 파인튜닝이 답이라는 기준이 생겼다. 금요일에 실제로 파인튜닝을 해보고 나서 이 표가 다시 이해됐다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">06. 모델을 어떻게 평가하나 — 벤치마크와 Elo 레이팅</h3>
+            <p>"어떤 모델이 좋은가"를 판단하는 방법도 배웠다. 지금까지는 정확도나 F1 같은 지표를 썼는데, 생성 모델은 정답이 하나가 아니라서 접근이 달랐다.</p>
+            <ul>
+              <li>벤치마크는 종류별로 노리는 게 달랐다. <strong>IFEval</strong>은 지시를 그대로 따르는지, <strong>BBH</strong>는 어려운 추론, <strong>MATH</strong>는 수학, <strong>GPQA</strong>는 검색으로 못 푸는 박사급 문제, <strong>MUSR</strong>은 긴 글의 다단계 추론, <strong>MMLU-PRO</strong>는 선택지를 10개로 늘려 난도를 올린 버전이다</li>
+              <li><strong>LMArena</strong>는 접근이 아예 달랐다. 두 모델의 답을 어느 쪽이 어느 모델인지 모르는 상태로 보여주고 사람이 투표하게 한 뒤, 그 승패로 <strong>Elo 레이팅</strong>을 매긴다. 체스 레이팅 계산 방식이 그대로 쓰인다는 게 재밌었다. 정답을 정의할 수 없으니 상대 비교로 순위를 만든다는 발상이었다</li>
+            </ul>
+            <p>실습으로는 같은 프롬프트를 여러 상용 모델에 똑같이 넣고 결과를 나란히 비교했다. 논문 초록 번역과 비트코인 가격 시각화 코드 생성 두 가지였는데, 번역은 큰 차이가 없었지만 코드 쪽에서 성격이 갈렸다. 어떤 모델은 데이터프레임 컬럼이 멀티인덱스로 올 경우를 대비한 방어 코드를 넣었고, 어떤 모델은 한글 폰트를 자동으로 찾는 코드를 추가했다. 벤치마크 점수만으로는 안 보이는 차이라, 결국 내 용도로 직접 돌려봐야 한다는 결론이었다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">07. 프롬프트 하이퍼파라미터</h3>
+            <p>프롬프트 엔지니어링을 배우기 전에 API가 받는 값들부터 정리했다. 그동안 챗봇을 쓸 때는 안 보이던 손잡이들이었다.</p>
+            <ul>
+              <li><code>temperature</code>는 다음 토큰 확률 분포를 평탄하게 만들지 뾰족하게 만들지를 정한다. 낮추면 항상 제일 그럴듯한 답만 나오고, 올리면 덜 확실한 후보도 뽑힐 여지가 생긴다</li>
+              <li><code>top_p</code>는 누적 확률 상위 몇 %까지만 후보로 남길지를 자른다. 둘 다 다양성을 조절하지만 방식이 다른데, <code>temperature</code>가 확률을 <strong>다시 계산하는</strong> 쪽이라면 <code>top_p</code>는 후보를 <strong>잘라내는</strong> 쪽이었다</li>
+              <li><code>frequency_penalty</code>와 <code>presence_penalty</code>의 차이가 헷갈렸는데 정리하니 간단했다. 앞엣것은 <strong>등장 횟수에 비례해서</strong> 페널티를 주고, 뒤엣것은 <strong>한 번이라도 나왔으면 똑같은</strong> 페널티를 준다. 두 번 나온 단어와 열 번 나온 단어를 다르게 취급할 것인가가 갈림길이었다</li>
+            </ul>
+            <p>실습 예제마다 권장 값이 같이 적혀 있던 게 좋았다. 분류처럼 답이 정해진 작업은 <code>temperature=0.2</code>, 말투를 바꾸는 창작성 있는 작업은 <code>0.7</code>, 키워드 추출은 <code>0.3</code> 식이었다. 값을 외우는 것보다 "정답이 하나로 좁혀지는 작업일수록 낮춘다"는 기준이 생긴 게 수확이었다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">08. 프롬프트 기법과 JSON 출력 강제</h3>
+            <p>프롬프트 기법을 이름 붙여가며 하나씩 봤다. Zero-shot / One-shot / Few-shot부터 시작해서, <strong>Chain-of-Thought</strong>(생각 과정을 단계로 쓰게 함), <strong>Tree-of-Thought</strong>(여러 방법을 동시에 전개한 뒤 비교), <strong>Self-Consistency</strong>(여러 번 돌려서 가장 많이 나온 답 채택), <strong>Least-to-Most</strong>(쉬운 하위 문제부터), <strong>Reflection</strong>(생성 → 스스로 비판 → 개선), <strong>Plan-and-Solve</strong>(계획 먼저 세우고 실행)까지 이어졌다.</p>
+            <p>실습은 뉴스 제목 교정기, 냉장고 재료로 요리 추천, 채용공고 기반 면접 질문 생성 세 가지였다. 여기서 제일 크게 배운 건 <strong>출력 형식을 JSON으로 강제하는 것</strong>이었다.</p>
+            <ul>
+              <li>자유 문장으로 받으면 매번 형식이 달라져서 뒤에 코드를 붙일 수가 없다. 스키마를 정해주고 JSON으로 받으면 <code>food['food_name']</code>처럼 바로 꺼내 쓸 수 있었다. LLM을 프로그램의 <strong>부품</strong>으로 쓰려면 이게 전제 조건이라는 게 이해됐다</li>
+              <li>더 재밌었던 건 <strong>JSON 필드 순서로 Chain-of-Thought를 강제</strong>하는 방법이었다. 근거 필드를 앞에, 결론 필드를 뒤에 두면 모델이 앞 필드를 채우면서 생각하고 그 결과를 뒤 필드에 쓴다. 순서를 반대로 하면 결론부터 뱉고 나서 이유를 갖다 붙이는 셈이라 품질이 달라진다는 게 인상적이었다</li>
+              <li>프롬프트를 함수로 감쌀 때 인자 시그니처를 이렇게 잡은 것도 배웠다. 교정할 문장은 위치 인자로만, 나머지 설정은 키워드로만 받게 강제하는 방식이다</li>
+            </ul>
+            <div class="code-block"><code class="language-python">def correct_headline(headline, /, *, model='gpt-5.6-luna', temperature=1,
+                     top_p=1, max_completion_tokens=2048):
+    ...</code></div>
+            <p>system 프롬프트를 Instruction / Output Format / Examples 세 블록으로 나눠 쓰는 구성도 계속 반복됐다. "20년 경력 뉴스 제목 교정가"처럼 역할을 먼저 부여하는 것도 매번 들어갔는데, 막연히 "잘 써줘"라고 하는 것보다 결과가 확실히 안정적이었다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">09. Chat Completions — 멀티턴과 스트리밍</h3>
+            <p>OpenAI API를 직접 호출하는 단계로 넘어갔다. <code>messages</code> 리스트에 <code>system</code> / <code>user</code> / <code>assistant</code> 역할을 번갈아 쌓는 구조인데, 여기서 중요한 걸 하나 알았다. <strong>API는 이전 대화를 기억하지 않는다.</strong> 매번 전체 히스토리를 다시 보내야 이어지는 대화가 된다.</p>
+            <ul>
+              <li>그래서 대화가 길어질수록 매 요청의 토큰이 늘고 비용과 지연이 같이 커진다. 대응책으로 최근 N턴만 유지하거나, 앞부분을 요약해서 <code>system</code>에 넣어두는 방법이 나왔다. 챗봇이 오래된 얘기를 잊는 게 버그가 아니라 설계였다는 걸 알게 됐다</li>
+              <li>대화를 어디에 저장할지도 정리했다. RDB / NoSQL / Redis 캐시 + DB 조합 / JSONL 파일 각각의 트레이드오프를 비교했는데, RAG로 갈 거면 중요한 메시지를 벡터DB에 임베딩으로 저장한다는 얘기가 나왔다. 이게 목요일 임베딩 실습으로 바로 이어졌다</li>
+              <li><strong>스트리밍</strong>은 <code>stream=True</code> 하나로 켜진다. 응답이 통째로 오는 게 아니라 조각으로 오는데, 조각 중에 내용이 <code>None</code>인 것이 섞여 있어서 그 처리를 안 하면 에러가 난다</li>
+            </ul>
+            <div class="code-block"><code class="language-python">stream = client.chat.completions.create(model=model, messages=messages, stream=True)
+for chunk in stream:
+    content = chunk.choices[0].delta.content
+    if content is not None:
+        print(content, end='')</code></div>
+            <p>이 둘을 합쳐서 <code>exit</code>를 입력할 때까지 도는 스트리밍 멀티턴 챗봇을 터미널에 만들어봤다. 평소에 쓰던 챗봇 화면이 사실 이 정도 구조라는 게 좀 허탈하면서도 재밌었다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">10. 목소리 붙이기 — TTS·STT와 음성 챗봇</h3>
+            <p>텍스트만 다루던 데서 음성으로 넘어갔다. TTS로 문장을 소리로 만들고, Whisper로 다시 텍스트로 되돌리는 왕복을 해봤다.</p>
+            <div class="code-block"><code class="language-python">with client.audio.speech.with_streaming_response.create(
+        model='gpt-4o-mini-tts', voice='marin',
+        input='오늘은 32도인데 왜 더운거지.') as resp:
+    resp.stream_to_file('output.mp3')</code></div>
+            <ul>
+              <li>TTS 모델도 용도별로 갈렸다. <code>tts-1</code>은 속도, <code>tts-1-hd</code>는 품질, <code>gpt-4o-mini-tts</code>는 프롬프트로 억양과 감정을 지시할 수 있는 모델이었다. 보이스마다 성격이 정해져 있어서 고르는 재미가 있었다</li>
+              <li>배송 지연 사과문 같은 긴 CS 응대 스크립트를 읽혀봤는데, 억양이 꽤 자연스러워서 어디까지가 합성인지 구분이 잘 안 됐다</li>
+              <li>방금 만든 mp3를 <code>whisper-1</code>로 다시 받아쓰게 하니 원문이 거의 그대로 복원됐다. 만든 걸 되돌려서 검증하는 방식이 깔끔했다</li>
+            </ul>
+            <p>목요일에는 이걸 묶어서 <strong>Streamlit 음성 챗봇</strong>을 만들었다. 녹음 → Whisper로 받아쓰기 → GPT 응답 → TTS로 음성 생성 → 자동 재생으로 이어지는 파이프라인이다. 재생 부분이 특히 재밌었는데, 오디오 파일을 base64로 인코딩해서 오디오 태그에 직접 박아 넣는 방식이었다.</p>
+            <div class="code-block"><code class="language-python">b64 = base64.b64encode(open('output.mp3', 'rb').read()).decode()
+st.html(f"&lt;audio autoplay='true'&gt;&lt;source src='data:audio/mp3;base64,{b64}'&gt;&lt;/audio&gt;")</code></div>
+            <ul>
+              <li>파일을 서버에 남기지 않고 <code>os.remove</code>로 지운 뒤 base64 문자열만 넘기는 구조라, 임시 파일이 쌓이지 않는 게 깔끔했다</li>
+              <li><code>st.session_state</code>로 대화를 유지하고, 초기화 버튼을 누른 직후에 이전 입력이 다시 처리되지 않도록 플래그를 하나 두는 처리도 필요했다. Streamlit이 상호작용마다 스크립트를 처음부터 다시 실행하는 구조라서 생기는 문제였다</li>
+            </ul>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">11. 임베딩 검색과 모더레이션</h3>
+            <p>임베딩은 지난주에 배운 게 그대로 이어졌다. 다만 이번엔 직접 학습시키는 게 아니라 <code>text-embedding-3-small</code> API로 뽑았고, 차원은 1536이었다. 음식 리뷰 1,000건을 제목과 본문을 합쳐 통째로 임베딩한 뒤, 쿼리도 임베딩해서 코사인 유사도로 정렬하는 검색을 만들었다.</p>
+            <div class="code-block"><code class="language-python">df['cos_sim'] = df['embedding'].apply(
+    lambda emb: cosine_similarity([emb], query_emb)[0, 0])
+df = df.sort_values('cos_sim', ascending=False).head()</code></div>
+            <p><code>delicious fruit</code>이나 <code>best coffee</code>로 검색해보니 그 단어가 문장에 없어도 의미가 비슷한 리뷰가 올라왔다. 키워드 검색과 결정적으로 다른 지점이었다. 벡터DB 없이 판다스 컬럼 하나로 만든 건데, 이게 RAG에서 말하는 "검색" 단계 자체라는 설명을 듣고 나니 RAG가 갑자기 손에 잡히는 개념이 됐다.</p>
+            <p><strong>모더레이션</strong>은 조금 다른 결의 내용이었다. 도입이 인상적이었는데, 하루 만에 폭언을 학습해서 내려진 해외 챗봇 사례와 국내 이루다 사건을 먼저 짚고 시작했다. 기술 문제가 아니라 서비스를 접게 만드는 문제라는 맥락이었다.</p>
+            <ul>
+              <li><code>client.moderations.create()</code>는 걸렸는지 여부(<code>flagged</code>), 어떤 항목인지(<code>categories</code>), 각 항목의 점수(<code>category_scores</code>)를 돌려준다. 뒤의 두 개를 DataFrame으로 합쳐서 걸린 항목만 뽑아 보는 헬퍼를 만들었다</li>
+              <li><code>omni-moderation-latest</code>는 텍스트와 이미지를 같이 검사할 수 있었다. <code>input</code>에 텍스트 항목과 이미지 URL 항목을 나란히 넣으면 된다</li>
+              <li>실서비스를 열기 전에 가장 많이 테스트하는 부분이 여기라는 얘기가 기억에 남는다. 모델 성능만 신경 쓰다가 놓치기 쉬운 영역이었다</li>
+            </ul>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">12. Function Calling — LLM에 도구 쥐여주기</h3>
+            <p>이번 주에 오해가 가장 크게 풀린 부분이었다. 이름만 보고 "LLM이 함수를 실행한다"고 생각했는데 아니었다. <strong>LLM은 어떤 함수를 어떤 인자로 부를지 정해줄 뿐이고, 실제 실행은 내 코드가 한다.</strong></p>
+            <p>흐름은 다섯 단계였다. ① 도구 정의와 메시지를 같이 보낸다 → ② 모델이 "이 함수를 이 인자로 불러라"는 JSON을 돌려준다 → ③ 내 코드가 그 함수를 실제로 실행한다 → ④ 실행 결과를 <code>messages</code>에 다시 넣어 보낸다 → ⑤ 모델이 그걸 읽고 자연어로 답한다. 모델을 두 번 호출한다는 게 처음엔 낯설었다.</p>
+            <p>실습으로 날씨 API를 붙였다. "오늘 서울 날씨 확인"이라고 물으면 모델이 <code>get_current_weather(city_name='Seoul')</code>을 지목하고, 내 코드가 실제 API를 호출해서 받아온 값을 다시 넘겨주면 모델이 문장으로 정리해줬다.</p>
+            <div class="code-block"><code class="language-python">tools_to_execute = {'get_current_weather': get_current_weather}
+
+tools = [{
+    'type': 'function',
+    'function': {
+        'name': 'get_current_weather',
+        'description': tools_to_execute['get_current_weather'].__doc__,
+        'parameters': {
+            'type': 'object',
+            'properties': {
+                'city_name': {'type': 'string', 'description': '영문 도시명'},
+                'units': {'type': 'string', 'enum': ['metric', 'imperial']},
+            },
+            'required': ['city_name'],
+        },
+    },
+}]</code></div>
+            <ul>
+              <li>함수 설명을 문자열로 따로 쓰지 않고 <code>__doc__</code>으로 docstring을 그대로 끌어온 게 깔끔했다. 함수 설명이 코드와 도구 정의 두 군데에 흩어지지 않는다</li>
+              <li>도시명 파라미터 설명에 한글 지명은 영문으로 바꿔서 넣으라는 힌트를 적어두니, "금일 경기도 하남시 날씨"처럼 물어도 알아서 <code>Hanam</code>으로 변환해서 넘겼다. <strong>설명 문자열이 곧 코드처럼 동작한다</strong>는 게 신기했다</li>
+              <li><code>enum</code>으로 값을 제한할 수 있다는 것도 유용했다. 모델이 아무 문자열이나 넣지 못하게 막는 안전장치다</li>
+            </ul>
+            <p>이걸 이해하고 나니 요즘 챗봇이 날씨나 검색 결과를 알려주는 게 어떻게 가능한지 감이 잡혔다. 모델이 세상을 아는 게 아니라, 물어볼 곳을 고르는 것이었다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">13. GPT 파인튜닝 — 빈정대는 챗봇과 KorQuAD</h3>
+            <p>금요일은 파인튜닝이었다. 화요일에 BERT를 파인튜닝할 때는 학습 루프를 직접 돌렸는데, GPT는 데이터만 정해진 형식으로 만들어 올리면 끝이었다.</p>
+            <p>먼저 <strong>피드백 플라이휠</strong>이라는 순서를 배웠다. 평가 → 프롬프트 엔지니어링 → 파인튜닝 → 다시 평가로 도는 사이클인데, <strong>파인튜닝이 첫 수단이 아니라 마지막 수단</strong>이라는 게 요지였다. 프롬프트로 해결되면 그게 낫고, 파인튜닝은 프롬프트 길이를 줄여 비용과 지연을 낮추거나 출력 형식을 고정해야 할 때 쓴다.</p>
+            <p>학습 데이터는 대화 한 세트를 한 줄에 담는 jsonl 형식이었다. 첫 실습은 사실은 맞게 말하되 계속 빈정대는 챗봇이었다.</p>
+            <div class="code-block"><code>{"messages": [
+  {"role": "system", "content": "너는 사실을 말하는 챗봇이지만, 빈정대거나 비꼬는 말투로 응답하는 고장난 챗봇이다."},
+  {"role": "user", "content": "프랑스의 수도가 어디야?"},
+  {"role": "assistant", "content": "파리(Paris)다. 이걸 질문이라고 하나? ..."}
+]}</code></div>
+            <p>말투를 프롬프트로 지시하는 것과 파인튜닝으로 심는 것의 차이가 여기서 드러났다. 파인튜닝한 모델은 system 프롬프트를 길게 안 붙여도 계속 그 말투를 유지했다. 매 요청마다 지시문을 실어 보낼 필요가 없다는 게 곧 비용 절감이라는 앞의 설명과 연결됐다.</p>
+            <p>두 번째는 KorQuAD였다. 한국어 질의응답 데이터셋 원본을 받아서, 세 겹으로 중첩된 구조를 풀어 질문·답변 쌍으로 평탄화한 뒤 같은 jsonl 형식으로 바꿨다.</p>
+            <div class="code-block"><code class="language-python">results.append({'messages': [
+    {'role': 'system', 'content': '당신은 정보력 강한 챗봇이다'},
+    {'role': 'user', 'content': q},
+    {'role': 'assistant', 'content': a}]})
+
+with open('korquad_finetuning_train.jsonl', 'w', encoding='utf-8') as f:
+    for qa in results:
+        f.write(json.dumps(qa, ensure_ascii=False) + '\n')</code></div>
+            <p>학습이 끝난 뒤 같은 질문을 파인튜닝 모델과 기본 모델에 각각 던져서 비교했다. 파인튜닝 모델은 데이터셋에 있던 사실을 짧고 단정하게 답했고, 기본 모델은 길게 풀어 쓰되 세부가 흔들렸다. 마지막에 일부러 <strong>전제가 틀린 질문</strong>을 넣어봤는데, 두 모델 다 틀린 전제를 그대로 받아서 그럴듯한 답을 만들어냈다. "그런 사실이 없다"고 말하는 모델은 없었다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">14. Ollama로 로컬 LLM 돌리기</h3>
+            <p>마지막은 내 컴퓨터에서 LLM을 직접 돌리는 것이었다. <code>ollama pull llama3</code>로 모델을 받고 <code>ollama run</code>으로 띄우면 API 키 없이 바로 쓸 수 있었다.</p>
+            <div class="code-block"><code class="language-python">import ollama
+
+def ollama_chat(prompt):
+    return ollama.chat(model='llama3',
+                       messages=[{'role': 'user', 'content': prompt}]).message.content</code></div>
+            <ul>
+              <li>인터페이스가 OpenAI API와 거의 같았다. <code>messages</code>에 role을 담아 보내는 구조가 동일해서, 앞에서 만든 코드에서 클라이언트만 바꾸면 될 정도였다</li>
+              <li>퀵소트 코드 생성, 요약, 키워드 추출을 시켜봤는데 상용 API보다는 확실히 결과가 거칠었고 응답도 느렸다. 대신 <code>ollama ps</code>, <code>ollama stop</code>으로 메모리에 올라간 모델을 직접 관리하는 감각은 새로웠다</li>
+              <li>프라이버시 얘기가 길게 나왔다. 로컬 모델은 프롬프트가 밖으로 안 나가지만, 이름에 <code>-cloud</code>가 붙은 모델은 서버로 전송된다. 판단 기준을 모델 국적이 아니라 <strong>데이터가 어디로 가는가 · 추론이 로컬인가 클라우드인가 · 코드를 확인할 수 있는가</strong>로 봐야 한다는 정리가 명확했다</li>
+            </ul>
+            <p>성능만 보면 API를 쓰는 게 낫지만, 외부로 못 보내는 데이터를 다뤄야 한다면 선택지가 이것뿐이라는 게 이해됐다. 앞에서 배운 SLM이 온디바이스용이라는 설명이 여기서 실물로 연결됐다.</p>
+          </div>
+        </div>
+
+        <!-- ── KPT 회고 ── -->
+        <div class="block">
+          <h2 class="block-title">KPT 회고</h2>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Keep</h3>
+            <p>지난주까지 밑바닥부터 만들어본 게 이번 주에 크게 도움이 됐다. <code>nn.Embedding</code>을 직접 써봤으니 BERT의 입력이 뭔지 바로 읽혔고, 어텐션을 손으로 짜봤으니 <code>attention_mask</code>가 왜 필요한지 설명 없이도 짐작이 갔다. 코사인 유사도를 문서 유사도에 써봤던 게 임베딩 검색에서 그대로 나왔다. 라이브러리부터 썼다면 그냥 외웠을 인자들이 의미로 읽히는 게 확실히 달랐다.</p>
+            <p>새 개념을 볼 때 "이게 뭘 해결하려고 나왔는지"를 먼저 확인하는 습관도 계속 유효했다. 파인튜닝은 프롬프트가 길어지는 비용 문제에서, 함수 호출은 모델이 실시간 정보를 모른다는 한계에서, 모더레이션은 실제 서비스 사고에서 나왔다는 식으로 배경을 먼저 잡으니 기능 목록이 아니라 이야기로 남았다.</p>
+          </div>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Problem</h3>
+            <p>API가 너무 쉬워서 "돌아간다"에서 멈춘 게 많았다. 지난주에는 성능이 안 나오면 최소한 왜 안 나오는지는 들여다봤는데, 이번 주는 대부분 한 번 호출해서 결과를 보고 넘어갔다. 특히 파인튜닝은 학습 데이터가 20건뿐이었고, 결과를 눈으로 몇 개 비교한 게 평가의 전부였다. 정확도든 뭐든 숫자로 재본 게 없다.</p>
+            <p>KorQuAD 실습에서는 검증 데이터를 만드는 코드가 학습 데이터를 그대로 다시 쓰고 있었는데(아래 트러블슈팅), 파일 크기가 똑같은 걸 나중에야 봤다. 만들어놓고 확인을 안 한 것이다.</p>
+            <p>그리고 지난주에 적어둔 목표 중 트랜스포머 마스킹 채우기와 IMDB 사전 크기 재실험은 결국 손도 못 댔다. 새 진도가 계속 나가는 상황에서 지난 숙제를 미루면 그대로 사라진다는 걸 확인한 셈이다.</p>
+          </div>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Try</h3>
+            <p>파인튜닝 결과를 눈으로 보고 판단하는 대신 평가를 붙여보고 싶다. KorQuAD는 정답이 있는 데이터셋이니, 검증셋을 제대로 나눠서 파인튜닝 모델과 기본 모델의 정답률을 숫자로 비교하면 이번 주에 못 한 걸 채울 수 있을 것 같다. 데이터도 20건에서 늘려보면 개수에 따라 얼마나 달라지는지 같이 볼 수 있다.</p>
+            <p>임베딩 검색은 판다스 컬럼에서 멈춰 있으니 실제 벡터DB를 붙여서 문서 수를 늘려보고, 검색 결과를 프롬프트에 넣어 답하게 하는 데까지 이어보고 싶다. 이번 주에 검색까지는 만들었으니 나머지 절반만 붙이면 RAG가 된다.</p>
+          </div>
+        </div>
+
+        <!-- ── 새롭게 발견한 것 ── -->
+        <div class="block">
+          <h2 class="block-title">새롭게 발견한 것</h2>
+          <p><strong>내가 파인튜닝한 모델이 남의 모델과 똑같은 방식으로 불러와졌다.</strong> 지난주까지 <code>pipeline('text-classification', model='...')</code>에 들어가는 이름은 전부 남이 만든 것이었는데, 이번엔 그 자리에 내가 올린 모델 이름이 들어갔다. 모델을 만드는 쪽과 쓰는 쪽이 별개의 세계가 아니라 같은 인터페이스로 연결돼 있다는 걸 알게 되니, 허브에 올라온 수많은 모델도 결국 누군가 이렇게 올린 것이라는 게 실감났다.</p>
+
+          <p><strong>Function Calling에서 LLM은 실행하지 않는다. 고르기만 한다.</strong> 이름 때문에 모델이 코드를 돌리는 줄 알았는데, 모델이 하는 일은 "이 함수를 이 인자로 부르면 된다"는 JSON을 만드는 것까지였다. 실제 호출은 내 코드가 하고, 그 결과를 다시 모델에게 넘겨줘야 문장이 나온다. 모델을 두 번 부르는 구조라는 것도 처음 알았는데, 이걸 이해하고 나니 LLM이 외부 세계와 연결되는 방식이 전부 이 패턴이라는 게 보였다.</p>
+
+          <p><strong>지난주에 문서 유사도를 재던 코사인 유사도가 그대로 검색 엔진이 됐다.</strong> 리뷰 1,000건을 임베딩해서 쿼리와의 코사인 유사도로 정렬한 게 전부인데, 검색어에 없는 단어로도 의미가 맞는 문서가 올라왔다. RAG라는 이름 때문에 대단한 기술일 거라 생각했는데, 검색 부분은 이미 배운 것의 조합이었다. 새 이름이 붙었다고 새 기술인 건 아니었다.</p>
+
+          <p><strong>틀린 전제를 넣으면 그대로 받아서 답을 만들어낸다.</strong> 파인튜닝 모델 비교 마지막에 사실과 다른 전제를 깔고 질문했는데, 모델이 전제를 의심하지 않고 자연스러운 답을 지어냈다. 지난주 감성분석 모델이 "모르겠다"고 말하지 못하는 걸 봤을 때와 같은 종류의 문제인데, 생성 모델은 답이 문장으로 나오는 만큼 훨씬 그럴듯해서 오히려 위험해 보였다. 모더레이션이나 평가가 왜 따로 필요한지가 여기서 이어졌다.</p>
+        </div>
+
+        <!-- ── 트러블슈팅 ── -->
+        <div class="block">
+          <h2 class="block-title">트러블슈팅</h2>
+
+          <div class="trouble-card">
+            <p class="trouble-card-title">문제 : ffmpeg가 없어서 음성 챗봇의 녹음 기능이 동작하지 않았다</p>
+            <p>Streamlit 음성 챗봇에 마이크 녹음 컴포넌트를 붙였는데, 녹음한 오디오를 처리하는 단계에서 막혔다. 라이브러리가 내부적으로 <code>ffmpeg</code>를 호출해 오디오 포맷을 변환하는데, 그게 설치돼 있지 않은 환경이었다.</p>
+            <p>시스템에 <code>ffmpeg</code>를 설치하면 해결되지만, 설치 없이도 돌아가는 버전을 따로 만드는 쪽을 택했다. 녹음 대신 파일 업로드와 텍스트 입력으로 입력 경로를 바꾸는 방식이다.</p>
+            <div class="code-block"><code class="language-python">uploaded = st.file_uploader('음성 파일 업로드', type=['wav', 'mp3', 'm4a'])
+
+def stt_file(uploaded):
+    return client.audio.transcriptions.create(
+        model='whisper-1',
+        file=(uploaded.name, uploaded.getvalue())   # (파일명, 바이트) 튜플로 바로 전달
+    ).text</code></div>
+            <p>여기서 배운 게 두 가지였다. 하나는 <code>file</code> 인자에 실제 파일 경로 대신 (파일명, 바이트) 튜플을 넘길 수 있다는 것이다. 업로드된 파일을 디스크에 저장했다가 다시 여는 과정을 통째로 건너뛸 수 있었다. 다른 하나는 막힌 지점이 꼭 고쳐야 할 지점은 아니라는 것이다. 문제는 녹음에서 났지만 실제로 필요한 건 "오디오를 확보하는 것"이라, 입력 경로만 바꾸니 나머지 파이프라인은 그대로 살았다. 파이썬 패키지가 아니라 시스템에 따로 설치돼 있어야 하는 프로그램에 의존하는 라이브러리가 있다는 것도 이번에 처음 인식했다.</p>
+          </div>
+
+          <div class="trouble-card">
+            <p class="trouble-card-title">문제 : 학습 데이터와 검증 데이터 파일이 완전히 똑같았다</p>
+            <p>KorQuAD로 파인튜닝 데이터를 만들면서 학습용과 검증용 jsonl을 각각 저장했는데, 폴더를 보니 두 파일 크기가 바이트 단위까지 같았다.</p>
+            <div class="code-block"><code>korquad_finetuning_train.jsonl        5,507 bytes
+korquad_finetuning_validation.jsonl   5,507 bytes</code></div>
+            <p>검증 데이터를 만드는 셀을 학습 데이터 셀에서 복사해 왔는데, 파일 이름만 바꾸고 순회하는 변수를 안 바꾼 것이 원인이었다.</p>
+            <div class="code-block"><code class="language-python">with open('korquad_finetuning_validation.jsonl', 'w', encoding='utf-8') as f:
+    for qa in results:          # val_results 를 써야 하는 자리
+        f.write(json.dumps(qa, ensure_ascii=False) + '\n')</code></div>
+            <p>에러가 전혀 안 났다는 게 이 문제의 핵심이었다. <code>results</code>도 멀쩡히 존재하는 변수라 코드는 정상적으로 돌았고 파일도 잘 만들어졌다. 검증셋이 학습셋과 같으면 검증 점수가 실제보다 좋게 나와서 "잘 학습됐다"는 착각을 하게 된다. 모델을 평가하려고 만든 데이터가 오히려 평가를 못 하게 막는 셈이다. 이번엔 크기가 같은 걸 우연히 보고 알아챘는데, 데이터를 만들고 나면 개수나 앞부분 몇 줄이라도 찍어보는 습관이 필요하다고 느꼈다. 셀을 복사해 놓고 변수명만 안 바꾸는 실수는 앞으로도 계속 나올 것 같다.</p>
+          </div>
+        </div>
+
+        <!-- ── 다음 주 목표 ── -->
+        <div class="block">
+          <h2 class="block-title">다음 주 목표</h2>
+          <ul>
+            <li>임베딩 검색에 벡터DB를 붙이고, 검색 결과를 프롬프트에 넣어 답하게 하는 데까지 이어서 RAG 완성하기</li>
+            <li>KorQuAD 검증셋을 제대로 분리해 다시 파인튜닝하고, 파인튜닝 모델과 기본 모델의 정답률을 숫자로 비교하기</li>
+            <li>학습 데이터를 20건에서 늘려가며 파인튜닝 결과가 데이터 개수에 얼마나 좌우되는지 확인하기</li>
+            <li>계속 미루고 있는 트랜스포머 마스킹 구현, 이번엔 진도와 상관없이 시간을 따로 잡아 끝내기</li>
+          </ul>
+        </div>
+
+        <!-- ── 마무리 한마디 ── -->
+        <div class="closing-quote">
+          만드는 법을 알고 나서 쓰는 법을 배우니, 편해진 만큼 무엇이 생략됐는지가 같이 보였다.<br>
+          한 줄로 되는 일이 많아진 주였지만, 그 한 줄을 의심할 수 있게 된 게 더 남는 것 같다.
+        </div>
+
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© 2026 kty2001 · <a href="https://github.com/kty2001" target="_blank">GitHub</a></p>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
+</body>
+</html>
