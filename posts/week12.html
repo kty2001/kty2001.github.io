@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Week 12 주간회고 · kty2001</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-title">kty2001<span>.</span>log</a>
+      <a href="../index.html" class="nav-back">← 목록으로</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="post-hero">
+      <div class="container">
+        <div class="post-meta">
+          <span class="post-tag">Week 12</span>
+          <span class="post-date-detail">2026년 08월 31일 — 09월 04일</span>
+        </div>
+        <h1>RAG를 더 정교하게 — 검색과 생성을 동시에 최적화하다</h1>
+      </div>
+    </section>
+
+    <article class="post-content">
+      <div class="container">
+
+        <!-- ── 이번 주 학습 내용 ── -->
+        <div class="block">
+          <h2 class="block-title">이번 주 학습 내용</h2>
+          <p>지난주 와인 소믈리에 프로젝트를 프롬프트만으로 끝내놓고 아쉬워했었는데, 이번 주 초반에 그 뒷부분부터 마무리했다. 나머지는 전부 "검색을 어떻게 하면 더 잘할까"와 "잘 찾은 걸로 어떻게 더 잘 답할까"라는 두 가지 질문을 파고드는 한 주였다. 지금까지는 벡터 검색 하나만 붙이면 RAG가 끝나는 줄 알았는데, 색인 단계부터 검색 이후 재정렬까지, 그리고 생성 직전까지 손볼 수 있는 지점이 이렇게 많다는 걸 이번 주에야 제대로 봤다.</p>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">01. 와인 소믈리에, 드디어 완성</h3>
+            <p>지난주엔 음식 사진을 보고 어울리는 와인 스타일을 설명하는 데서 멈췄었다. 이번 주엔 여기에 실제 와인 데이터를 붙였다. 캐글의 와인 리뷰 13만 건(<code>winemag-data-130k-v2.csv</code>)을 Pinecone에 인덱싱해두고, 음식 사진에서 뽑아낸 풍미 묘사를 그대로 검색 쿼리로 던져 비슷한 와인을 찾아오는 구조다.</p>
+            <div class="code-block"><code class="language-python">flavor_description = describe_dish_flavor(image_url)  # 이미지 → 풍미 묘사 텍스트
+matches = wine_index.query(vector=embed(flavor_description), top_k=5, include_metadata=True)
+recommendation = chain.invoke({'flavor': flavor_description, 'candidates': matches})</code></div>
+            <p>사진 한 장에서 시작해서 "묘사 → 검색 → 추천"까지 끝까지 이어지는 걸 눈으로 보니, 지난주엔 프롬프트 엔지니어링에 가까웠던 게 이번엔 진짜 RAG가 됐다는 게 실감났다. Streamlit 앱으로도 만들어서, 이미지 URL 하나만 넣으면 추천 문장이 스트리밍으로 흘러나오는 것까지 확인했다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">02. 검색 최적화 — 잘 찾아오는 법</h3>
+            <p>검색기 하나로 퉁치던 걸 여러 각도에서 뜯어봤다. 먼저 BM25(키워드 기반)와 Dense(임베딩 기반) 검색을 Precision@k·Recall@k·MRR·MAP 네 지표로 나란히 채점해봤는데, 의미 중심 질문이 많은 데이터셋에서는 Dense가 앞섰다. 그런데 둘의 결과가 서로 엇갈릴 때는 <strong>RRF(Reciprocal Rank Fusion)</strong>로 순위를 합치는 게 도움이 됐고, 질문이 짧고 모호할 때는 <strong>HyDE</strong>처럼 모델이 먼저 가짜 답을 만들어서 그걸로 검색하는 방식이 재현율을 끌어올렸다.</p>
+            <ul>
+              <li>BM25∪Dense로 후보를 넉넉히 모은 뒤 <strong>Cohere Rerank</strong>로 다시 줄 세우는 조합이 네 지표 전부에서 가장 좋은 성적을 냈다. Bi-Encoder는 빠르게 후보를 거르고, Cross-Encoder 계열인 Rerank가 정밀하게 순서를 다시 매기는 역할 분담이었다</li>
+              <li><strong>Contextual Compression</strong>은 두 군데에 걸 수 있었다. 색인하기 전에 문서를 미리 요약해서 넣는 방식과, 검색은 원문으로 하되 결과를 반환하기 직전에 <code>LLMChainExtractor</code>로 질문과 관련된 부분만 추출하는 방식. 전자는 인덱스 크기와 노이즈를 줄이고, 후자는 비용과 "중간에 있는 내용을 놓치는" 문제를 줄이는 데 초점이 달랐다</li>
+              <li><code>SelfQueryRetriever</code>로 "2015년 이후 나온 평점 90점 이상 레드 와인"처럼 조건이 섞인 질문을 자연어 그대로 던지면, 모델이 알아서 메타데이터 필터(연도·점수·종류)를 뽑아내는 걸 봤다. 조건이 많은 질문일수록 순수 Dense 검색보다 확실히 결과가 깔끔했다</li>
+            </ul>
+            <p>가장 흥미로웠던 건 <strong>Multi-hop Retrieval</strong>이었다. "아이폰 만드는 회사의 본사는 어디에 있나?" 같은 질문을 한 번에 검색하면 답이 안 나오는데, "아이폰 만드는 회사 찾기 → 그 회사 본사 위치 찾기"처럼 질문을 순서대로 쪼개서 단계별로 검색하니 답이 나왔다. 검색을 한 번으로 끝낼 필요가 없다는 걸 처음 체감한 순간이었다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">03. 생성 최적화 — 잘 찾은 걸로 잘 답하는 법</h3>
+            <p>검색까지는 잘 됐다고 쳐도, 그 결과를 어떻게 답으로 바꾸는지에 따라서도 품질이 갈렸다. CoT를 검색 결과 위에 그대로 얹어서 근거를 짚어가며 답하게 하는 것부터 시작해서, 여행 일정 추천처럼 정답이 하나가 아닌 문제에는 같은 질문을 5번 던져 답을 클러스터링하고 다수결로 고르는 <strong>Self-Consistency</strong>를 써봤다.</p>
+            <div class="code-block"><code class="language-python">answers = [chain.invoke(question) for _ in range(5)]
+clusters = KMeans(n_clusters=3).fit(embed(answers))
+final_answer = pick_majority_cluster(answers, clusters)</code></div>
+            <p>비용·속도가 중요한 상황을 가정한 실습도 있었다. 검색된 문서를 답변 생성 전에 300토큰 안팎으로 압축하는 <strong>Prompt Compression</strong>은 사내 문서 QA처럼 반복 호출이 많은 상황을 염두에 둔 기법이었다. 답을 자유 텍스트가 아니라 정해진 형식으로 받아야 할 때는 Pydantic 스키마와 <code>with_structured_output</code>을 그대로 다시 썼는데, 지난주 LangChain에서 봤던 걸 RAG 결과에 그대로 적용하는 자리라 이질감이 없었다.</p>
+            <p>마지막으로 <strong>Tree-of-Thought</strong>를 검색 결과에 적용해서, 같은 문맥을 두고 서로 다른 "전문가 관점" 여러 개를 각각 추론시킨 뒤 하나로 합쳐 최종 답을 내는 구조를 봤다. 수학 퍼즐이나 최단 경로 찾기처럼 정답이 명확한 문제부터, UI 설계처럼 정답이 없는 문제까지 예시가 다양해서, 정답이 하나든 여러 개든 "여러 갈래로 생각한 다음 합친다"는 틀 자체는 똑같이 쓸 수 있다는 걸 확인했다.</p>
+          </div>
+        </div>
+
+        <!-- ── KPT 회고 ── -->
+        <div class="block">
+          <h2 class="block-title">KPT 회고</h2>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Keep</h3>
+            <p>지난주 끝에 "다음 주엔 이걸 하겠다"고 남겨뒀던 와인 소믈리에 완성을 이번 주 초반에 바로 해치운 게 좋았다. 미뤄뒀던 걸 다음 주로 또 넘기지 않고 계획대로 마무리하고 나니, 그다음 검색·생성 최적화 내용을 배울 때도 "이걸 나중에 저 프로젝트에 어떻게 붙일까"를 자연스럽게 생각하면서 들을 수 있었다.</p>
+          </div>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Problem</h3>
+            <p>검색 최적화와 생성 최적화 기법을 각각 노트북 하나씩 따로 실습만 하고 넘어간 게 많다. RRF, HyDE, Rerank, Self-Consistency, ToT를 전부 개별 예제로만 확인했지, 이 중 두세 개를 한 파이프라인에 같이 얹어보는 실습은 이번 주엔 못 했다. 기법 하나하나의 효과는 이해했는데, 여러 개를 같이 썼을 때 서로 어떻게 상호작용하는지는 아직 감이 없다.</p>
+          </div>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Try</h3>
+            <p>와인 소믈리에 프로젝트에 이번 주 배운 최적화 기법 중 하나 이상을 실제로 얹어볼 생각이다. 지금은 순수 Dense 검색만 쓰고 있으니, 우선 Cohere Rerank부터 붙여서 추천 품질이 눈에 띄게 달라지는지 확인해보고 싶다.</p>
+          </div>
+        </div>
+
+        <!-- ── 새롭게 발견한 것 ── -->
+        <div class="block">
+          <h2 class="block-title">새롭게 발견한 것</h2>
+          <p><strong>RAG 품질은 검색기 하나가 아니라 여러 지점에 걸쳐 있었다.</strong> 색인하기 전 문서를 압축할지, 검색을 BM25로 할지 Dense로 할지, 검색 결과를 재정렬할지, 생성 직전에 다시 한 번 걸러낼지 — 손댈 수 있는 지점이 파이프라인 곳곳에 흩어져 있었다. 지금까지는 "임베딩 모델을 뭘 쓰느냐"가 검색 품질의 전부인 줄 알았는데, 그건 여러 지점 중 하나였을 뿐이었다.</p>
+
+          <p><strong>검색을 한 번으로 끝낼 필요가 없다.</strong> Multi-hop Retrieval에서 질문을 단계별로 쪼개 순차적으로 검색하는 걸 보고 나서, "검색 = 한 번의 유사도 계산"이라는 생각이 깨졌다. 복잡한 질문일수록 검색 자체를 여러 단계로 설계하는 게 임베딩 모델을 바꾸는 것보다 더 근본적인 해결책일 수 있겠다는 생각이 들었다.</p>
+
+          <p><strong>비용과 정확도는 서로 다른 지점에서 관리된다.</strong> Prompt Compression은 비용·속도를, Rerank나 Self-Consistency는 정확도를 각각 겨냥한 기법이었다. 하나의 RAG 시스템을 만들 때 "느리고 정확하게"와 "빠르고 저렴하게" 사이 어디쯤에 둘지를, 기법을 조합해서 조절할 수 있다는 걸 알았다.</p>
+        </div>
+
+        <!-- ── 해커톤 참가 후기 ── -->
+        <div class="block">
+          <h2 class="block-title">해커톤 참가 후기</h2>
+          <p>이번 주엔 수업과 별개로 제8회 K-디지털 트레이닝(KDT) 해커톤에도 참가했다. 주제는 "인간의 능력을 확장하는 AI 기반 디지털 서비스"였고, 팀에서는 저시력·야맹증이 있는 사람들의 야간 보행을 돕는 <strong>"밤마실"</strong>이라는 시스템을 만들었다.</p>
+          <p>완전히 앞이 안 보이는 게 아니라 잔존 시력이 있는데 어두운 곳에서 눈부심과 낮은 대비 때문에 유독 힘들어하는 사람들이 많다는 지점에서 출발했다. 음성 안내나 값비싼 웨어러블 대신, 스마트폰 카메라 영상을 실시간으로 보정해서 보여주는 쪽으로 방향을 잡았다.</p>
+          <p>파이프라인은 표시 경로와 탐지 경로 두 갈래로 나눴다. ① 글레어(눈부심) 억제로 밝은 광원을 눌러주고, ② 딥러닝 기반 저조도 향상으로 어두운 영역의 대비를 살린 뒤, 이 두 단계와 별개로 ③ 경량화한 YOLO 모델이 원본 프레임에서 계단·보행자 같은 위험 요소를 탐지하고, ④ 탐지된 부분만 화면에 선택적으로 강조 표시하는 구조다. PyTorch와 Ultralytics로 모델을 학습하고, 지식 증류로 모델을 압축한 뒤 ONNX 런타임으로 온디바이스 추론까지 최적화했다.</p>
+          <p>서버 전송 없이 기기 안에서 전부 처리되도록 목표를 잡았는데, 최종적으로 720p에서 15FPS 이상, INT8로 양자화한 3MB대 모델로 mAP50 0.717을 달성했다. 이번 주 배운 RAG 최적화와는 결이 다른 문제(실시간 온디바이스 비전)였지만, "정확도만 높이면 끝"이 아니라 속도·모델 크기·정확도 사이에서 계속 트레이드오프를 조율해야 한다는 감각은 이번 주 RAG 실습에서 본 것과 크게 다르지 않았다.</p>
+        </div>
+
+        <!-- ── 다음 주 목표 ── -->
+        <div class="block">
+          <h2 class="block-title">다음 주 목표</h2>
+          <ul>
+            <li>와인 소믈리에 프로젝트의 Dense 검색에 Cohere Rerank를 붙여서 추천 품질 변화를 직접 비교해보기</li>
+            <li>Multi-hop Retrieval을 다른 도메인 질문에도 적용해보고, 언제 단일 검색으로 충분하고 언제 단계를 쪼개야 하는지 기준 잡아보기</li>
+            <li>검색 최적화(Rerank, Metadata Filtering)와 생성 최적화(Structured Output) 기법을 한 파이프라인에 같이 얹어보기</li>
+            <li>계속 미뤄온 트랜스포머 마스킹 구현, 이번 주도 넘어갔으니 다음 주엔 진도와 별개로 시간을 따로 잡기</li>
+          </ul>
+        </div>
+
+        <!-- ── 마무리 한마디 ── -->
+        <div class="closing-quote">
+          검색기 하나만 잘 고르면 되는 줄 알았는데, 색인부터 생성 직전까지 손댈 지점이 이렇게 많을 줄은 몰랐다.<br>
+          수업 밖에서 해커톤으로 다른 종류의 AI 문제를 붙잡아본 것도, 결국 같은 질문("얼마나 정확하게, 얼마나 가볍게")으로 돌아온 한 주였다.
+        </div>
+
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© 2026 kty2001 · <a href="https://github.com/kty2001" target="_blank">GitHub</a></p>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
+</body>
+</html>
