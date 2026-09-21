@@ -5,3 +5,8 @@ data
 dataset
 
 *.sav
+*.pt
+
+*.jpg
+*.png
+*.mp4
