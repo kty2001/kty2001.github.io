@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>JS_ON_WEB</title>
+
+        <script>
+            console.log('🌽🌽🌽');
+
+            function foo() {
+                console.log('foooooo');
+            }
+            foo();
+        </script>
+    </head>
+
+    <body>
+        <h1>JS on web</h1>
+        <ol>
+            <li>
+                on 이벤트 속성
+                <button type="button" onclick="alert('🐶');">강아지</button>
+            </li>
+            <li>
+                내부 Script 태그에 작성
+                <button type="button" onclick="foo(); foo();">foo</button>
+            </li>
+            <li>
+                외부 js 파일에 작성한 버튼
+                <button type="button" onclick="test();">외부 JS</button>
+            </li>
+        </ol>
+
+        <script src="js/01_js_on_web.js"></script>
+        <script>
+            console.log('🥑🥑');
+
+            function bar() {
+                console.log('baaaaaaaaaarr');
+            }
+            console.log(bar());
+            console.log(document.querySelector('h1').innerHTML)
+        </script>
+    </body>
+</html>

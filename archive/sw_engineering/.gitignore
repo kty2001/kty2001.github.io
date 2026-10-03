@@ -1,0 +1,8 @@
+.venv
+model/*.joblib
+
+/config.local
+/tmp
+/cache
+
+.pytest_cache
