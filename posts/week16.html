@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Week 16 주간회고 · kty2001</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-title">kty2001<span>.</span>log</a>
+      <a href="../index.html" class="nav-back">← 목록으로</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="post-hero">
+      <div class="container">
+        <div class="post-meta">
+          <span class="post-tag">Week 16</span>
+          <span class="post-date-detail">2026년 09월 28일 — 10월 02일</span>
+        </div>
+        <h1>화면에 동작을 붙이고, 서버에서 화면을 만들다 — JavaScript·DOM·비동기와 Django 템플릿·ORM, 그리고 QnA 게시판</h1>
+      </div>
+    </section>
+
+    <article class="post-content">
+      <div class="container">
+
+        <!-- ── 이번 주 학습 내용 ── -->
+        <div class="block">
+          <h2 class="block-title">이번 주 학습 내용</h2>
+          <p>지난주에 HTML과 CSS로 화면의 뼈대를 쌓았다면, 이번 주 초반 이틀은 그 화면을 <strong>움직이게 하는 JavaScript</strong>였다. 문법을 먼저 훑고, DOM을 고르고 바꾸는 법, 이벤트, 그리고 비동기 요청까지 이어갔다. 수요일부터는 반대편으로 넘어가 <strong>화면을 서버에서 만들어 내려주는 Django</strong>를 시작했다. 프로젝트 구조, 템플릿, ORM을 하루씩 쌓고, 마지막 날에는 그걸 전부 합친 QnA 게시판 코드를 따라가봤다. 앞에서 배운 fetch가 게시판의 추천 버튼과 아이디 중복 확인에서 다시 등장하면서, 한 주 동안 배운 두 덩어리가 하나로 이어졌다.</p>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">01. JavaScript 기본기 — 자료형, 형변환, 단축평가</h3>
+            <p>자료형은 <code>undefined</code>, <code>string</code>, <code>number</code>, <code>boolean</code>, <code>null</code>, <code>object</code>, <code>bigint</code>, <code>symbol</code> 여덟 가지다. 배열과 함수도 <code>typeof</code>로 찍어보면 결국 object 계열로 묶인다. 변수는 <code>let</code>, 상수는 <code>const</code>로 선언하고, <code>var</code>는 예전 코드 호환용이라 쓰지 않는다. <code>var</code>는 if/for 블럭을 무시하고 함수 단위로만 범위가 잡혀서, 블럭 안에서 선언한 값이 밖으로 새어 나온다.</p>
+            <p>제일 헷갈렸던 건 <strong>암묵적 형변환</strong>이었다. 같은 문자열 <code>"3"</code>인데 연산자에 따라 결과가 달라진다.</p>
+            <div class="code-block"><code class="language-javascript">console.log(3 + "3");    // "33"  — +는 문자열 이어붙이기가 우선
+console.log(3 - "3");    // 0     — 나머지 산술은 숫자로 변환
+console.log(3 - "a");    // NaN
+console.log(3 == "3");   // true  — 형변환 후 비교
+console.log(3 === "3");  // false — 타입까지 같아야 true
+
+Boolean([]);   // true  — 빈 배열·빈 객체도 truthy
+Boolean('');   // false — 0, '', null, undefined, NaN은 falsy</code></div>
+            <p>그래서 비교는 되도록 <code>===</code>를 쓰라는 이야기를 들었다. 숫자 변환도 방법마다 달라서, <code>'123.456원'</code>은 <code>Number()</code>로는 <code>NaN</code>이지만 <code>parseInt()</code>는 앞에서부터 읽을 수 있는 데까지 읽어 <code>123</code>을 돌려준다.</p>
+            <p>truthy/falsy를 알고 나니 <strong>단축평가</strong>가 자연스럽게 이해됐다. <code>||</code>는 앞이 참이면 뒤를 보지 않고, <code>&amp;&amp;</code>는 앞이 거짓이면 뒤를 보지 않는다. 이걸 이용해 <code>Number(answer) || 1000</code>처럼 기본값을 주거나, <code>user?.username</code> 같은 옵셔널 체이닝으로 객체가 없을 때 에러 대신 <code>undefined</code>를 받을 수 있다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">02. 함수와 객체 — 화살표 함수, 1급 객체, class, 구조분해</h3>
+            <p>함수는 선언식과 표현식 두 가지로 만든다. 선언식은 <strong>호이스팅</strong>되어 선언보다 위에서 호출해도 동작하지만, 변수에 담은 표현식은 그렇지 않다. 짧게 쓸 때는 화살표 함수 <code>(a, b) =&gt; a + b</code>를 쓴다. <code>...</code>은 자리에 따라 뜻이 갈렸다. 매개변수 자리에서는 남은 인자를 배열로 묶는 <strong>나머지 파라미터</strong>, 호출하는 자리에서는 배열을 펼치는 <strong>전개 연산자</strong>다.</p>
+            <p>함수를 변수에 담고, 배열에 넣고, 인자로 넘기고, 리턴값으로 돌려줄 수 있다는 게 <strong>1급 객체</strong>라는 뜻이었다. 함수를 돌려주는 함수는 꽤 재미있었다.</p>
+            <div class="code-block"><code class="language-javascript">const getDessert = (dessert) =&gt; (name) =&gt; `${name}이/가 ${dessert} 먹음`;
+
+const getCake = getDessert('🎂');
+const getDonut = getDessert('🍩');
+console.log(getCake('철수'));   // 철수이/가 🎂 먹음
+console.log(getDonut('은희'));  // 은희이/가 🍩 먹음</code></div>
+            <p><code>getCake</code>는 만들어질 때 받은 <code>'🎂'</code>를 계속 기억하고 있다. 같은 틀에서 디저트만 바꾼 함수를 여러 개 찍어낼 수 있는 구조다.</p>
+            <p>객체 쪽은 <strong>prototype</strong>에서 시작했다. 생성자 함수로 객체를 만들면 그 객체의 <code>__proto__</code>가 <code>Pet.prototype</code>을 가리키고, 여기에 메소드를 달아두면 모든 객체가 같이 쓴다. 거슬러 올라가면 끝에는 <code>Object.prototype</code>이 있어서, 정의한 적 없는 <code>toString()</code>도 호출된다. <code>class</code>는 이 구조를 더 읽기 쉽게 쓰는 문법이라, <code>constructor</code>, <code>static</code>, <code>extends</code>와 <code>super</code>로 같은 내용을 다시 작성해봤다.</p>
+            <div class="code-block"><code class="language-javascript">const user = {
+  id: 'honggd',
+  name: { firstName: '길동', lastName: '홍' },
+  sns: ['tiktok', 'thread', 'X']
+};
+
+// 중첩 객체와 배열을 한 번에 꺼내기
+const { id, name: { firstName }, sns: [mainSns] } = user;
+
+// 매개변수 자리에서 바로 분해
+const handleId = ({ id }) =&gt; console.log(id);</code></div>
+            <p><strong>구조분해 할당</strong>은 배열은 순서로, 객체는 속성 이름으로 값을 꺼낸다. 처음엔 문법이 낯설었는데, 뒤에서 fetch 응답을 받을 때 <code>const {id, company} = data</code>처럼 계속 쓰여서 금방 손에 익었다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">03. DOM — 요소를 고르고, 따라가고, 바꾸기</h3>
+            <p>브라우저는 HTML을 읽어 <strong>DOM 트리</strong>를 만들고, JavaScript는 이 트리의 노드를 객체로 다룬다. 고르는 방법은 <code>getElementById</code>, <code>getElementsByClassName</code> 같은 옛 방식과 CSS 선택자를 그대로 쓰는 <code>querySelector</code> / <code>querySelectorAll</code>이 있다. 지난주에 배운 선택자가 여기서 그대로 쓰였다. 태그 객체를 담는 변수에는 <code>$sample</code>처럼 <code>$</code>를 붙여 구분하는 습관도 같이 배웠다.</p>
+            <ul>
+              <li><strong>탐색</strong> — <code>children</code>, <code>parentElement</code>, <code>nextElementSibling</code>처럼 Element 전용 속성을 쓰면 줄바꿈 텍스트 노드에 걸리지 않는다</li>
+              <li><strong>유사 배열</strong> — <code>children</code>이 돌려주는 HTMLCollection은 <code>forEach</code>가 없어서 <code>Array.from()</code>이나 <code>[...]</code>로 진짜 배열로 바꿔 쓴다</li>
+              <li><strong>스타일</strong> — <code>style.backgroundColor</code>는 인라인 스타일을 직접 바꾸고, <code>classList.add/remove</code>는 미리 만든 CSS 클래스를 붙였다 뗀다</li>
+              <li><strong>내용</strong> — <code>innerHTML</code>은 태그를 해석하고, <code>innerText</code>는 태그까지 글자 그대로 넣는다</li>
+            </ul>
+            <div class="code-block"><code class="language-javascript">// 기준 요소의 앞·안쪽 처음·안쪽 끝·뒤에 끼워 넣기
+$target.insertAdjacentHTML('beforebegin', '&lt;span&gt;🎈&lt;/span&gt;');
+$target.insertAdjacentHTML('afterbegin',  '&lt;span&gt;🎈&lt;/span&gt;');
+$target.insertAdjacentHTML('beforeend',   '&lt;span&gt;🎈&lt;/span&gt;');
+$target.insertAdjacentHTML('afterend',    '&lt;span&gt;🎈&lt;/span&gt;');
+
+// 객체로 만들어 붙이기
+const $h3 = document.createElement('h3');
+$h3.appendChild(document.createTextNode('안녕, HTML'));
+document.querySelector('#area').appendChild($h3);</code></div>
+            <p>이미 화면에 있는 요소를 <code>appendChild</code>로 다른 부모에 붙이면 복사가 아니라 <strong>이동</strong>이 된다는 것도 해보고 나서야 알았다. 삭제는 <code>remove()</code>로 자기 자신을, <code>innerHTML = ''</code>로 자식 전체를 지운다. 그 밖에 <code>window</code>가 탭마다 하나씩 있는 최상위 객체이고, 그 아래 <code>document</code>(DOM)와 <code>location</code>, <code>history</code>, <code>navigator</code>, <code>screen</code>(BOM)이 달려 있다는 구조도 정리했다. <code>setInterval</code>로 1초마다 시각을 갱신하는 시계도 하나 만들어봤다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">04. 이벤트 — 클릭, 입력, 제출, 그리고 전파</h3>
+            <p>이벤트는 <code>onclick</code> 속성이나 <code>addEventListener</code>로 연결한다. <code>onclick</code>은 하나만 들어가서 다시 대입하면 덮어쓰지만, <code>addEventListener</code>는 같은 이벤트에 핸들러를 여러 개 걸 수 있다. 입력창에는 <code>focus</code>/<code>blur</code>, 키보드에는 <code>keydown</code>/<code>keyup</code>을 붙여봤고, 한글처럼 조합해서 입력하는 글자는 조합이 끝났을 때 <code>compositionend</code>가 따로 발생한다는 것도 봤다.</p>
+            <p>가장 실용적이었던 건 <strong>폼 제출 전 검사</strong>였다.</p>
+            <div class="code-block"><code class="language-javascript">$frm.onsubmit = (e) =&gt; {
+  if (!/^[a-zA-Z0-9]{4,}$/.test($username.value)) {
+    alert('아이디 영문자/숫자 4글자 이상 입력해주세요.');
+    e.preventDefault();   // 서버로 보내지 않음
+    return;
+  }
+  if ($password.value !== $confirmPassword.value) {
+    alert('두 비밀번호가 일치하지 않습니다.');
+    e.preventDefault();
+    $password.select();
+    return;
+  }
+};</code></div>
+            <p>submit 버튼을 누르면 submit 이벤트 → 핸들러 → 실제 제출 순서로 흘러가기 때문에, 중간에서 <code>preventDefault()</code>로 막을 수 있다. 형식 검사는 정규표현식 <code>test()</code>로 했다.</p>
+            <p><strong>이벤트 전파</strong>도 직접 확인했다. div 세 개를 겹쳐놓고 가장 안쪽을 누르면 바깥 div와 body의 핸들러까지 차례로 실행된다(버블링). 중간에서 <code>e.stopPropagation()</code>을 부르면 거기서 멈춘다. 반대로 이 성질을 이용하면 바깥 요소 하나에만 핸들러를 달고 <code>e.target.id</code>로 실제 눌린 요소를 구분할 수도 있다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">05. 비동기 — 콜백에서 Promise, fetch까지</h3>
+            <p>JavaScript는 한 번에 한 가지 일만 하는데, 기다려야 하는 작업은 Web API에 맡겨두고 다음 줄로 넘어간다. 때가 되면 콜백이 대기열에 들어가고, 실행 중인 코드가 비면 <strong>이벤트 루프</strong>가 꺼내서 실행한다. 그래서 아래 코드는 <code>undefined</code>가 먼저 찍힌다.</p>
+            <div class="code-block"><code class="language-javascript">let value2;
+setTimeout(() =&gt; {
+  value2 = 200;
+  console.log(value2);  // 1초 뒤 200
+}, 1000);
+console.log(value2);    // 바로 undefined</code></div>
+            <p>박스 색을 1초 간격으로 일곱 번 바꾸는 예제를 콜백으로 짜니 <code>setTimeout</code>이 여섯 겹으로 파고들었다. 같은 동작을 <strong>Promise</strong>로 바꾸면 한 줄씩 아래로 늘어선다. <code>then</code>이 다시 Promise를 돌려주기 때문에 이어 붙일 수 있는 구조다.</p>
+            <div class="code-block"><code class="language-javascript">const changeBGColor = (color, millis) =&gt; new Promise((resolve) =&gt; {
+  setTimeout(() =&gt; {
+    $box.style.backgroundColor = color;
+    resolve();
+  }, millis);
+});
+
+changeBGColor('orange', 1000)
+  .then(() =&gt; changeBGColor('yellow', 1000))
+  .then(() =&gt; changeBGColor('green', 1000));</code></div>
+            <p>Promise는 처음에 <code>pending</code>이고, <code>resolve</code>가 불리면 <code>fulfilled</code>, <code>reject</code>가 불리면 <code>rejected</code>가 된다. 네트워크 요청을 보내는 <strong>fetch</strong>도 Promise를 돌려준다. GitHub API로 내 프로필 이미지 주소를 받아와 <code>img</code> 태그로 붙이고, 같은 요청을 axios로도 보내봤다. axios는 응답을 JSON으로 바꾸는 단계를 대신 해줘서 <code>.then(({data}) =&gt; ...)</code>로 바로 꺼낼 수 있었다. <code>async</code>/<code>await</code>는 실습 페이지만 만들어두고 진도가 Django로 넘어갔는데, 금요일 게시판 코드에서 실제로 쓰이는 걸 보게 됐다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">06. Django 첫 프로젝트 — 프로젝트와 앱, URL과 View</h3>
+            <p>Django는 <strong>프로젝트</strong>(설정 전체) 안에 기능별 <strong>앱</strong>을 여러 개 두는 구조다. <code>startproject</code>로 만든 <code>_01_django_project</code> 폴더에 설정이 들어 있고, <code>startapp</code>으로 만든 <code>first</code>, <code>second</code>가 각각의 기능을 맡는다. 요청이 들어오면 프로젝트의 <code>urls.py</code>가 경로를 보고 앱의 <code>urls.py</code>로 넘기고, 거기서 연결된 view 함수가 응답을 만든다.</p>
+            <div class="code-block"><code class="language-python"># 프로젝트 urls.py
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', RedirectView.as_view(url='/first/', permanent=False)),
+    path('first/', include('first.urls')),
+    path('second/', include('second.urls')),
+]
+
+# first/urls.py
+app_name = 'first'
+urlpatterns = [
+    path('', views.index, name='index'),
+    path('home', views.home, name='home'),
+]
+
+# first/views.py
+def index(request):
+    return HttpResponse('Hello django')
+
+def home(request):
+    return render(request, 'first/home.html')</code></div>
+            <p>view는 <code>request</code>를 받아 응답을 돌려주는 함수다. 글자만 돌려줄 때는 <code>HttpResponse</code>, HTML 파일을 쓸 때는 <code>render</code>를 쓴다. 템플릿 폴더는 <code>settings.py</code>의 <code>TEMPLATES['DIRS']</code>에 <code>BASE_DIR / 'templates'</code>로 등록하고, 앱 이름으로 하위 폴더를 나눠 같은 이름의 파일이 섞이지 않게 했다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">07. Django 템플릿 — 변수, 태그, 상속, 정적 파일, URL</h3>
+            <p>템플릿은 HTML 안에 <code>{{ }}</code>로 값을, <code>{% %}</code>로 로직을 넣는다. view에서 넘긴 딕셔너리의 키가 그대로 변수 이름이 된다. 값 뒤에 <code>|</code>를 붙이면 <strong>필터</strong>로 후처리할 수 있다.</p>
+            <div class="code-block"><code class="language-django">&lt;p&gt;제 이름은 {{ name | upper }}입니다. 저는 {{ age | add:1 }}살입니다.&lt;/p&gt;
+&lt;p&gt;오늘은 {{ today | date:"Y/m/d (D) H:i:s" }}입니다.&lt;/p&gt;
+
+{% for user in users %}
+  &lt;tr&gt;
+    &lt;td&gt;{{ forloop.counter }}&lt;/td&gt;
+    &lt;td&gt;{{ user.name }}&lt;/td&gt;
+  &lt;/tr&gt;
+{% empty %}
+  &lt;tr&gt;&lt;th colspan="5"&gt;조회된 회원이 없습니다.&lt;/th&gt;&lt;/tr&gt;
+{% endfor %}</code></div>
+            <p><code>{% for %}</code>에는 목록이 비었을 때를 위한 <code>{% empty %}</code>와 몇 번째 반복인지 알려주는 <code>forloop.counter</code>가 있다. <code>{% with %}</code>로 만든 변수는 <code>{% endwith %}</code>까지만 살아 있어서, 블럭 밖에서 같은 변수를 찍으면 빈칸이 나왔다.</p>
+            <ul>
+              <li><strong>레이아웃</strong> — <code>base.html</code>에 <code>{% block content %}</code> 자리를 비워두고, 각 페이지는 <code>{% extends %}</code>로 상속해 그 자리만 채운다. 헤더·푸터는 <code>{% include %}</code>로 끼워 넣는다</li>
+              <li><strong>정적 파일</strong> — <code>STATICFILES_DIRS</code>에 static 폴더를 등록하고, 템플릿 맨 위에 <code>{% load static %}</code>를 쓴 뒤 <code>{% static 'css/global.css' %}</code>로 경로를 만든다</li>
+              <li><strong>URL</strong> — 주소를 직접 적지 않고 <code>{% url 'app:articles_detail' id=1 %}</code>처럼 이름으로 만든다. 경로를 바꿔도 템플릿을 고칠 필요가 없다</li>
+            </ul>
+            <div class="code-block"><code class="language-python">path('articles_category/&lt;str:category&gt;/&lt;int:id&gt;', views.articles_category, ...)
+
+def search(request):
+    q = request.GET.getlist('q', [])    # ?q=로션&amp;q=치약 → ['로션', '치약']
+    lang = request.GET.get('lang', '')
+    return render(request, 'app/05_urls.html', {'q': q, 'lang': lang})</code></div>
+            <p>값을 넘기는 방법은 두 가지다. 경로 안에 <code>&lt;int:id&gt;</code>로 박아두면 view의 매개변수로 들어오고, <code>?q=...</code> 쿼리스트링은 <code>request.GET</code>으로 꺼낸다. 같은 키가 여러 번 오면 <code>get</code>은 마지막 하나만, <code>getlist</code>는 전부를 준다. 마지막에는 Bootstrap CDN을 붙여 미리 만들어진 클래스로 화면을 꾸며봤다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">08. Django ORM — 테이블을 클래스로, SQL을 메소드로</h3>
+            <p>ORM은 테이블을 파이썬 클래스로 정의하고, SQL 대신 메소드로 데이터를 다루게 해준다. DB는 MySQL로 바꿨다. <code>django</code> 계정과 <code>djangodb</code> 데이터베이스를 만들고, 한글과 이모지를 담기 위해 <code>utf8mb4</code>로 설정했다.</p>
+            <div class="code-block"><code class="language-python">class Product(models.Model):
+    name = models.CharField(max_length=100)
+    price = models.PositiveIntegerField()
+    stock = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)  # 처음 저장할 때만
+    updated_at = models.DateTimeField(auto_now=True)      # 저장할 때마다
+
+class Discount(models.Model):   # 1:1
+    product = models.OneToOneField(Product, on_delete=models.CASCADE)
+
+class Review(models.Model):     # 1:N
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
+
+class Category(models.Model):   # N:M
+    products = models.ManyToManyField(Product, related_name='categories')</code></div>
+            <p>모델을 고친 뒤 <code>makemigrations</code>로 변경 기록 파일을 만들고, <code>migrate</code>로 실제 DB에 반영한다. <code>related_name</code>을 정해두면 반대 방향에서도 <code>product.reviews.all()</code>처럼 접근할 수 있다.</p>
+            <p>조회는 <code>manage.py shell</code>에서 직접 쳐봤다. <code>filter</code>는 여러 행을 QuerySet으로, <code>get</code>은 정확히 한 행만 돌려주고 없거나 여러 개면 에러가 난다. 조건은 필드 이름 뒤에 <strong>밑줄 두 개</strong>로 붙인다.</p>
+            <div class="code-block"><code class="language-python">product.reviews.filter(rating__gte=4)                       # 4점 이상
+Review.objects.filter(created_at__range=(start, end))        # 기간
+Product.objects.filter(categories__isnull=True)              # 카테고리 없는 상품
+
+# 한 상품의 평균 평점 → 값 하나
+product.reviews.aggregate(avg_rating=Avg('rating'))
+
+# 모든 상품에 평균 평점·리뷰 수 컬럼을 붙여서 → 상품 목록
+Product.objects.annotate(avg_rating=Avg('reviews__rating'),
+                         review_count=Count('reviews'))</code></div>
+            <p><code>aggregate</code>는 전체를 하나의 값으로 모으고, <code>annotate</code>는 각 행에 계산한 값을 붙인다. 그리고 반복문 안에서 연관 객체를 꺼낼 때마다 쿼리가 한 번씩 더 나가는 <strong>N+1 문제</strong>도 들었다. 1:1이나 FK처럼 하나를 따라가는 관계는 <code>select_related</code>로 JOIN해서 한 번에, 역참조나 N:M처럼 여러 개를 가져오는 관계는 <code>prefetch_related</code>로 미리 모아서 가져온다.</p>
+          </div>
+
+          <div class="sub-block">
+            <h3 class="sub-block-title">09. QnA 게시판 — 지금까지 배운 걸 한 프로젝트로</h3>
+            <p>금요일에는 질문·답변 게시판 <code>04_qna</code>를 따라갔다. 게시판 기능을 맡는 <code>qna</code> 앱과 회원 기능을 맡는 <code>uauth</code> 앱 두 개로 나뉘어 있다. 질문(<code>Question</code>)과 답변(<code>Answer</code>)은 FK로 이어지고, 작성자는 Django 기본 <code>User</code>를 FK로, 추천한 사람 목록은 <code>User</code>와의 N:M으로 둔다. 화면은 Bootstrap을 붙인 <code>base.html</code>을 상속해서 만들었다.</p>
+            <div class="code-block"><code class="language-python">@login_required(login_url='uauth:login')
+def question_create(request):
+    if request.method == 'POST':
+        form = QuestionForm(request.POST)
+        if form.is_valid():
+            question = form.save(commit=False)   # 아직 DB에 저장하지 않음
+            question.author = request.user       # 작성자를 채운 뒤
+            question.save()                      # 저장
+            return redirect('qna:question_detail', question_id=question.id)
+    else:
+        form = QuestionForm()
+    return render(request, 'qna/question_form.html', {'form': form})</code></div>
+            <p>하나의 view가 GET이면 빈 폼을 보여주고 POST면 저장하는 구조다. <code>ModelForm</code>은 모델을 바탕으로 입력 검사(<code>is_valid</code>)까지 해준다. 폼에 없는 작성자 값은 <code>commit=False</code>로 저장을 잠시 미뤄두고 채워 넣는다. 저장한 뒤에는 화면을 바로 그리지 않고 <code>redirect</code>로 상세 페이지로 보낸다. 새로고침했을 때 POST가 다시 전송되는 걸 막기 위해서다.</p>
+            <ul>
+              <li><strong>권한</strong> — <code>@login_required</code>로 로그인을 강제하고, 수정·삭제는 <code>request.user != question.author and not request.user.is_staff</code>로 한 번 더 막는다</li>
+              <li><strong>목록</strong> — <code>Paginator(questions, 10)</code>로 10개씩 자르고, 템플릿에서는 현재 페이지 앞뒤 3개 번호만 보여준다. 쿼리에는 <code>select_related('author')</code>와 <code>prefetch_related('answer_set')</code>를 붙였다</li>
+              <li><strong>알림</strong> — <code>messages.error()</code>, <code>messages.success()</code>로 남긴 메시지를 <code>base.html</code>에서 Bootstrap alert로 띄운다</li>
+              <li><strong>회원가입</strong> — <code>UserCreationForm</code>을 상속해 생일·프로필 이미지를 추가했다. 이 두 값은 <code>User</code>와 1:1인 <code>UserDetail</code>에 저장하고, 두 테이블 저장은 <code>transaction.atomic()</code>으로 묶어 한쪽만 들어가는 일이 없게 했다</li>
+            </ul>
+            <p>가장 반가웠던 건 앞에서 배운 JavaScript가 여기서 다시 나온 부분이다. 추천 버튼을 누르면 페이지를 새로 불러오지 않고 숫자만 바뀐다.</p>
+            <div class="code-block"><code class="language-javascript">$tag.addEventListener('click', async (e) =&gt; {
+  const response = await fetch($tag.dataset.uri, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+  });
+  const data = await response.json();
+  if (data.result == 'success') {
+    $tag.querySelector('span').textContent = data.vote_count;
+  } else {
+    alert(data.message);   // 본인 글 추천 시
+  }
+});</code></div>
+            <div class="code-block"><code class="language-python">def question_vote(request, question_id):
+    question = Question.objects.get(id=question_id)
+    if question.voters.filter(id=request.user.id).exists():
+        question.voters.remove(request.user)   # 이미 추천했으면 취소
+    else:
+        question.voters.add(request.user)
+    return JsonResponse({'result': 'success', 'vote_count': question.voters.count()})</code></div>
+            <p>서버는 HTML 대신 <code>JsonResponse</code>로 숫자만 돌려주고, 브라우저는 <code>await</code>로 그걸 받아 DOM의 숫자만 바꾼다. 요청 URL은 템플릿의 <code>data-uri</code> 속성에 <code>{% url %}</code>로 미리 박아두고 <code>dataset.uri</code>로 꺼낸다. Django는 POST 요청마다 CSRF 토큰을 검사하기 때문에, 폼에서는 <code>{% csrf_token %}</code>을, fetch에서는 <code>X-CSRFToken</code> 헤더를 넣어야 한다. 회원가입의 아이디 중복 확인도 같은 방식이었다. 입력할 때마다 <code>check_username</code>에 GET 요청을 보내고, 받은 <code>{available, message}</code>를 구조분해해서 입력창 아래 문구를 바꾼다.</p>
+            <p>답변 수정에 별도 페이지가 없는 이유도 여기서 보였다. 수정 버튼에 <code>data-answer-id</code>와 <code>data-answer-content</code>를 달아두고, 클릭하면 JavaScript가 Bootstrap 모달 안의 textarea와 폼 action을 채운다. 그래서 <code>answer_modify</code> view는 POST만 처리하면 된다.</p>
+          </div>
+        </div>
+
+        <!-- ── KPT 회고 ── -->
+        <div class="block">
+          <h2 class="block-title">KPT 회고</h2>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Keep</h3>
+            <p>지난주 목표였던 "HTML·CSS 페이지에 동작 붙이기"를 그대로 이어갔다. DOM과 이벤트를 배우고 나니 지난주에 만든 화면이 버튼 하나, 입력창 하나 단위로 다르게 보였다. 그리고 금요일 QnA 코드를 읽을 때 월·화에 배운 fetch, 구조분해, <code>dataset</code>, 이벤트 핸들러가 전부 다시 나와서, 따로 배운 내용이 실제로 어디에 쓰이는지 확인할 수 있었다.</p>
+          </div>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Problem</h3>
+            <p>진도가 빨라서 직접 쳐보는 양이 줄었다. JavaScript는 이틀 만에 문법부터 비동기까지 지나갔고, <code>async</code>/<code>await</code> 실습 파일은 HTML만 만들어두고 비어 있다. ORM 실습 문제 20개도 주석만 적어놓고 풀지 못했다. 게시판 코드는 따라 읽기는 했지만 처음부터 혼자 짜라고 하면 어디서 막힐지 모르겠다. 지난주 Try였던 DVC 원격 저장소 연결과 미뤄둔 이미지 모델 서빙·동영상 RAG도 이번 주 역시 손을 대지 못했다.</p>
+          </div>
+
+          <div class="kpt-section">
+            <h3 class="kpt-section-title">Try</h3>
+            <p>비어 있는 <code>12_async_await.js</code>부터 채우고, 앞에서 Promise로 짠 색 바꾸기와 fetch 예제를 <code>async</code>/<code>await</code>로 다시 써볼 생각이다. ORM 실습 문제 20개는 shell에서 하나씩 풀면서 <code>connection.queries</code>로 실제 SQL도 같이 확인하려 한다. QnA 게시판은 코드를 보지 않고 질문 CRUD까지만이라도 직접 다시 만들어볼 계획이다.</p>
+          </div>
+        </div>
+
+        <!-- ── 새롭게 발견한 것 ── -->
+        <div class="block">
+          <h2 class="block-title">새롭게 발견한 것</h2>
+          <p><strong>받아온 프로젝트에는 <code>manage.py</code>가 없었다.</strong> 수업 저장소에서 <code>04_qna</code>를 내려받아보니 <code>manage.py</code>와 <code>migrations</code> 폴더가 빠져 있었다. <code>.gitignore</code>를 열어보니 둘 다 제외 대상으로 적혀 있었다. 받아서 바로 <code>runserver</code>를 할 수 있는 상태가 아니라, <code>manage.py</code>를 다시 만들고 <code>makemigrations</code>부터 돌려야 하는 구조였다. 반대로 내 로컬 실습 폴더에는 <code>db.sqlite3</code>와 마이그레이션 파일이 그대로 쌓여 있었다. 무엇을 저장소에 올리고 무엇을 각자 만들게 할지는 <code>.gitignore</code>가 정한다는 걸 다시 느꼈다.</p>
+
+          <p><strong>확장자 없는 <code>djangodb</code> 파일의 정체.</strong> ORM 실습 폴더에 <code>djangodb</code>라는 정체 모를 파일이 있었다. 열어보니 SQLite 데이터베이스였고, 안에는 <code>auth_user</code> 같은 Django 기본 테이블이 들어 있었다. 아마 <code>DATABASES</code>의 <code>NAME</code>만 <code>'djangodb'</code>로 바꾸고 <code>ENGINE</code>은 아직 <code>sqlite3</code>인 상태에서 migrate를 한 번 돌렸던 흔적 같다. SQLite 엔진에서는 <code>NAME</code>이 DB 이름이 아니라 파일 경로라서, 그 이름으로 파일이 하나 생긴 것이다.</p>
+
+          <p><strong>f-string 안에 같은 따옴표를 또 쓸 수 있다.</strong> 게시판 view에 <code>f"{resolve_url("qna:question_detail", question_id=question_id)}#answer_{answer.id}"</code>처럼 큰따옴표 안에 큰따옴표가 들어간 줄이 있었다. 당연히 문법 에러일 줄 알았는데, 파이썬 3.12부터는 f-string 안의 중괄호에서 바깥과 같은 따옴표를 다시 쓸 수 있게 바뀌었다고 한다. 다만 이전 버전에서는 에러가 나니, 다른 환경에서 돌릴 코드라면 안쪽은 작은따옴표로 바꿔 쓰는 게 안전하다.</p>
+        </div>
+
+        <!-- ── 트러블슈팅 ── -->
+        <div class="block">
+          <h2 class="block-title">트러블슈팅</h2>
+
+          <div class="trouble-card">
+            <p class="trouble-card-title">문제 : 상품을 조회하면 AttributeError가 났다</p>
+            <p>shell에서 <code>Product.objects.get(id=1)</code>을 치거나 리뷰를 출력하면 결과 대신 에러가 났다.</p>
+            <div class="code-block"><code class="language-python">AttributeError: 'Product' object has no attribute 'title'</code></div>
+            <p><code>Product</code>에는 <code>title</code> 필드가 없는데 왜 찾는지 의아했다. 원인은 <code>__str__</code>이었다. <code>Post</code> 모델을 만들 때 쓴 <code>return self.title</code>을 그대로 복사해 와서, 상품명 필드 <code>name</code> 대신 없는 <code>title</code>을 찾고 있었다. shell은 객체를 화면에 보여줄 때 <code>__str__</code>을 부르기 때문에, 조회 자체는 성공했는데 출력하는 순간 터진 것이다. 리뷰 목록을 찍을 때도 <code>review.product</code>를 같이 출력하는 순간 같은 에러가 났다.</p>
+            <div class="code-block"><code class="language-python">def __str__(self):
+    return self.title   # 수정 전 — Post에서 복사
+
+def __str__(self):
+    return self.name    # 수정 후</code></div>
+            <p><code>__str__</code>은 DB 컬럼과 상관없는 메소드라서 <code>makemigrations</code>나 <code>migrate</code> 단계에서는 아무 경고도 나오지 않는다. 모델을 복사해서 만들 때는 필드뿐 아니라 메소드 안에서 쓰는 이름까지 같이 확인해야 한다는 걸 배웠다.</p>
+          </div>
+
+          <div class="trouble-card">
+            <p class="trouble-card-title">문제 : 모든 상품의 평균 평점을 구하는 annotate에서 FieldError가 났다</p>
+            <p>상품별 평균 평점과 리뷰 수를 한 번에 붙이려고 <code>annotate</code>를 썼는데 바로 에러가 났다.</p>
+            <div class="code-block"><code class="language-python">Product.objects.annotate(
+    average_rating = Avg('reviews_rating'),   # 밑줄 하나
+    review_count = Count('reviews')
+)
+# FieldError: Cannot resolve keyword 'reviews_rating' into field.</code></div>
+            <p>관계를 건너가 다른 모델의 필드를 가리킬 때는 <code>reviews__rating</code>처럼 밑줄을 <strong>두 개</strong> 써야 한다. 밑줄 하나면 Django는 <code>reviews_rating</code>이라는 필드를 찾다가 없다고 판단한다. <code>rating__gte</code>, <code>created_at__range</code>처럼 조건을 붙일 때 쓰던 그 밑줄 두 개가 관계를 따라갈 때도 똑같이 쓰인다.</p>
+            <p>고치고 나니 이번엔 반복문에서 <code>AttributeError</code>가 났다. annotate에서는 <code>average_rating</code>으로 이름을 붙여놓고, 출력할 때는 <code>product.avg_rating</code>, 심지어 한 곳은 <code>product.avg_raing</code>으로 꺼내고 있었다.</p>
+            <div class="code-block"><code class="language-python">products = Product.objects.annotate(
+    avg_rating = Avg('reviews__rating'),
+    review_count = Count('reviews')
+)
+for product in products:
+    avg_rating = f'{product.avg_rating:.2f}' if product.avg_rating else '0'</code></div>
+            <p>annotate에 준 키워드가 그대로 객체의 속성 이름이 되니, 붙일 때와 꺼낼 때 같은 이름을 써야 한다. 리뷰가 없는 상품은 평균이 <code>None</code>으로 나와서 <code>:.2f</code> 포맷이 실패하기 때문에, 앞에 조건을 둬 <code>'0'</code>으로 바꿔주는 처리도 필요했다.</p>
+          </div>
+
+          <div class="trouble-card">
+            <p class="trouble-card-title">문제 : 시계가 10초에 "010"으로 표시됐다</p>
+            <p>1초마다 시:분:초를 갱신하는 시계를 만들었는데, 가끔 세 자리가 찍혔다. 10시, 10분, 10초가 되는 순간에만 <code>010</code>으로 나왔다.</p>
+            <div class="code-block"><code class="language-javascript">const f = (n) =&gt; n &gt; 10 ? n : '0' + n;   // 수정 전</code></div>
+            <p>한 자리 숫자 앞에 0을 붙이려던 함수인데, 조건이 <code>n &gt; 10</code>이라 10은 "10보다 크다"에 해당하지 않는다. 그래서 10도 한 자리로 취급돼 앞에 0이 붙었다. 0~9만 걸러야 하니 기준을 뒤집어야 했다.</p>
+            <div class="code-block"><code class="language-javascript">const f = (n) =&gt; n &lt; 10 ? '0' + n : n;               // 수정 후
+const f2 = (n) =&gt; String(n).padStart(2, '0');         // 내장 메소드로</code></div>
+            <p>문자열의 <code>padStart(2, '0')</code>를 쓰면 길이가 2가 될 때까지 앞에 0을 채워줘서 경계값을 고민할 필요가 없다. 1초마다 바뀌는 화면이라 대부분의 시간에는 멀쩡해 보여서 더 늦게 눈에 띄었다. 조건문은 경계값 하나만 넣어봐도 바로 확인된다는 걸 다시 배웠다.</p>
+          </div>
+        </div>
+
+        <!-- ── 다음 주 목표 ── -->
+        <div class="block">
+          <h2 class="block-title">다음 주 목표</h2>
+          <ul>
+            <li><code>async</code>/<code>await</code> 실습 채우기, Promise 예제를 <code>await</code> 방식으로 다시 쓰기</li>
+            <li>ORM 실습 문제 20개 풀기, 실행된 SQL을 <code>connection.queries</code>로 확인하기</li>
+            <li>QnA 게시판 질문 CRUD를 코드 없이 처음부터 다시 만들어보기</li>
+            <li>미뤄둔 DVC 원격 저장소, 이미지 모델 서빙, 동영상 RAG 중 하나라도 마무리하기</li>
+          </ul>
+        </div>
+
+        <!-- ── 마무리 한마디 ── -->
+        <div class="closing-quote">
+          주 초반에는 브라우저 안에서 화면을 움직였고, 후반에는 그 화면을 서버에서 만들어 내려보냈다.<br>
+          추천 버튼 하나에 fetch와 JsonResponse가 같이 들어 있는 걸 보고, 두 쪽이 이렇게 만난다는 걸 알게 됐다.
+        </div>
+
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© 2026 kty2001 · <a href="https://github.com/kty2001" target="_blank">GitHub</a></p>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
+</body>
+</html>
