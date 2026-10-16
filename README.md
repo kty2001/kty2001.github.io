@@ -67,3 +67,4 @@ git push origin main
 | Week 15 | 만든 모델을 함께 관리하고 자동으로 내보내기, 그리고 웹 화면의 뼈대 — 협업 흐름·DVC·CI/CD와 HTML·CSS | 2026.09.21 — 09.25 | ✅ 작성 완료 |
 | Week 16 | 화면에 동작을 붙이고, 서버에서 화면을 만들다 — JavaScript·DOM·비동기와 Django 템플릿·ORM, 그리고 QnA 게시판 | 2026.09.28 — 10.02 | ✅ 작성 완료 |
 | Week 17 | 서버가 나를 기억하는 방법, 그리고 내 서버를 클라우드에 올리다 — 세션·쿠키, DB에 남는 챗봇, S3 업로드, Django+FastAPI, EC2 | 2026.10.05 — 10.08 | ✅ 작성 완료 |
+| Week 18 | 컨테이너를 묶고 함수만 올리다, 그리고 4차 프로젝트를 닫다 — Docker Compose, gunicorn+PostgreSQL, Lambda·API Gateway, 창업ON 고도화 | 2026.10.12 — 10.16 | ✅ 작성 완료 |
